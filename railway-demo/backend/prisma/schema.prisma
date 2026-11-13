@@ -1,0 +1,19 @@
+// Prisma schema for the railway demo. The table itself is created in Supabase
+// (see the trains table migration), so this file only describes it for the client.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SUPABASE_DB_URL")
+}
+
+model Train {
+  trainId        Int    @id @map("train_id")
+  trainName      String @map("train_name") @db.VarChar(100)
+  availableSeats Int    @map("available_seats")
+
+  @@map("trains")
+}

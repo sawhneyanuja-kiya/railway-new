@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Railway Reservation System | Viva Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --rail-blue: #1d4e89;
+      --rail-blue-dark: #163b66;
+      --rail-gold: #f0a202;
+      --rail-red: #d62828;
+      --rail-green: #2a9d8f;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #eef2f6;
+      min-height: 100vh;
+    }
+
+    .hero {
+      background: linear-gradient(120deg, var(--rail-blue) 0%, var(--rail-blue-dark) 100%);
+      color: #fff;
+      padding: 2rem 0 1.4rem;
+    }
+    .hero h1 { font-weight: 700; letter-spacing: -0.01em; margin-bottom: .25rem; }
+    .hero .lead { color: #cfe2f3; margin-bottom: 0; }
+    .hero .accent-bar { width: 64px; height: 4px; background: var(--rail-gold); border-radius: 2px; margin-top: .8rem; }
+
+    .nav-tabs {
+      --bs-nav-tabs-link-active-color: var(--rail-blue);
+      --bs-nav-tabs-link-active-border-color: #dee2e6 #dee2e6 #fff;
+      --bs-nav-link-color: #495057;
+      --bs-nav-link-hover-color: var(--rail-blue);
+      border-bottom: 2px solid #dee2e6;
+    }
+    .nav-tabs .nav-link { font-weight: 600; padding: .65rem 1.1rem; }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(16,42,67,.06);
+      margin-bottom: 1.25rem;
+    }
+    .card-header {
+      background: #fff;
+      border-bottom: 1px solid #eef2f6;
+      font-weight: 700;
+      border-radius: 14px 14px 0 0 !important;
+    }
+
+    .train-card {
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .train-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(16,42,67,.12); }
+
+    .badge-seats {
+      font-size: .9rem; padding: .4rem .7rem; border-radius: 8px; font-weight: 600;
+    }
+
+    .seat-big {
+      font-size: 4.5rem; line-height: 1; font-weight: 800;
+      color: var(--rail-green);
+      transition: color .3s ease, transform .3s ease;
+    }
+    .seat-big.full { color: var(--rail-red); }
+    .seat-big.bump { transform: scale(1.08); }
+
+    .btn-race {
+      background: var(--rail-red); border-color: var(--rail-red); color: #fff; font-weight: 600;
+    }
+    .btn-race:hover:not(:disabled) { background: #b21f1f; border-color: #b21f1f; color: #fff; }
+
+    .btn-sync {
+      background: var(--rail-blue); border-color: var(--rail-blue); color: #fff; font-weight: 600;
+    }
+    .btn-sync:hover:not(:disabled) { background: var(--rail-blue-dark); border-color: var(--rail-blue-dark); color: #fff; }
+
+    .terminal {
+      background: #0d1b2a; color: #e0e1dd; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .85rem; line-height: 1.55; border-radius: 10px; padding: 1rem;
+      height: 380px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1b263b;
+    }
+    .terminal::-webkit-scrollbar { width: 8px; }
+    .terminal::-webkit-scrollbar-thumb { background: #2a3a55; border-radius: 4px; }
+
+    .result-box { min-height: 52px; }
+    .alert-demo { border-radius: 10px; }
+
+    .profile-avatar {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--rail-blue), var(--rail-green));
+      color: #fff; font-size: 2rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <h1><i class="bi bi-train-front-fill"></i> Railway Reservation System</h1>
+      <p class="lead">End-Semester Viva Demo &middot; Process Synchronization: Mutex / Locks</p>
+      <div class="accent-bar"></div>
+    </div>
+  </header>
+
+  <div class="container my-4">
+
+    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button" role="tab">
+          <i class="bi bi-ticket-perforated"></i> Passenger Booking
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab">
+          <i class="bi bi-person-circle"></i> User Profile
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="demo-tab" data-bs-toggle="tab" data-bs-target="#demo" type="button" role="tab">
+          <i class="bi bi-diagram-3"></i> How It Actually Works
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content p-3 p-md-4 bg-white border border-top-0 rounded-bottom shadow-sm" style="border-radius: 0 0 14px 14px;">
+
+      <!-- TAB 1: PASSENGER BOOKING -->
+      <div class="tab-pane fade show active" id="booking" role="tabpanel">
+        <h4 class="mb-1">Available Trains</h4>
+        <p class="text-muted mb-4">Browse trains and book a single ticket. This is the normal, single-user path.</p>
+
+        <div id="trainList" class="row g-3">
+          <div class="text-muted">Loading trains...</div>
+        </div>
+
+        <div id="bookingAlert" class="alert alert-demo mt-3 d-none" role="alert"></div>
+      </div>
+
+      <!-- TAB 2: USER PROFILE -->
+      <div class="tab-pane fade" id="profile" role="tabpanel">
+        <h4 class="mb-1">User Login</h4>
+        <p class="text-muted mb-4">Enter any username and password. Authentication is mocked for this demo.</p>
+
+        <div class="row g-4">
+          <div class="col-md-5">
+            <div class="card">
+              <div class="card-body">
+                <form id="loginForm">
+                  <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="loginUsername" placeholder="e.g. arjun" required />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="loginPassword" placeholder="any password" required />
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                  </button>
+                </form>
+                <div id="loginAlert" class="alert alert-demo mt-3 d-none" role="alert"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-7">
+            <div id="profileCard" class="card d-none">
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="profile-avatar me-3" id="profileAvatar">U</div>
+                  <div>
+                    <h5 class="mb-0" id="profileName">User</h5>
+                    <small class="text-muted" id="profileEmail">user@demo.edu</small>
+                  </div>
+                </div>
+                <p class="mb-2"><strong>Age:</strong> <span id="profileAge">-</span></p>
+                <h6 class="mt-3">Past Bookings</h6>
+                <ul class="list-group list-group-flush" id="profileBookings"></ul>
+              </div>
+            </div>
+            <div id="profilePlaceholder" class="text-muted p-4 text-center border rounded-3 border-dashed">
+              <i class="bi bi-person-lines-fill fs-1 d-block mb-2"></i>
+              Your mock profile will appear here after login.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: HOW IT ACTUALLY WORKS -->
+      <div class="tab-pane fade" id="demo" role="tabpanel">
+        <h4 class="mb-1">The Core Viva Demo: Race Condition vs. Mutex</h4>
+        <p class="text-muted mb-4">One train (<strong>Express 101</strong>) has exactly 1 seat. Each button fires two booking requests at the same time and shows what happens.</p>
+
+        <div class="row g-3">
+
+          <!-- Panel A: Live Database -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-database-fill"></i> Panel A &middot; Live Database</div>
+              <div class="card-body text-center">
+                <p class="text-muted mb-1">Express 101 &middot; seats available</p>
+                <div id="demoSeats" class="seat-big">-</div>
+                <p id="demoSeatStatus" class="text-muted mt-2 mb-3">Loading...</p>
+                <button id="btnReset" class="btn btn-outline-secondary w-100">
+                  <i class="bi bi-arrow-counterclockwise"></i> Reset Seats to 1
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel B: Execution Controls -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-sliders"></i> Panel B &middot; Execution Controls</div>
+              <div class="card-body d-grid gap-2">
+                <button id="btnRace" class="btn btn-race">
+                  <i class="bi bi-exclamation-triangle-fill"></i> Trigger Race Condition (No Sync)
+                </button>
+                <button id="btnSync" class="btn btn-sync">
+                  <i class="bi bi-shield-lock-fill"></i> Trigger Synchronized Booking (Mutex)
+                </button>
+                <hr class="my-2" />
+                <div id="demoResult" class="result-box text-muted small">
+                  Press a button to start two booking requests at the same time.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel C: Execution Log -->
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-terminal-fill"></i> Panel C &middot; Execution Log</span>
+                <button id="btnClearLog" class="btn btn-sm btn-outline-secondary">Clear</button>
+              </div>
+              <div class="card-body p-2">
+                <pre id="terminalLog" class="terminal m-0"></pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="text-center text-muted small my-4">
+      Railway Reservation System &middot; OS Process Synchronization Demo &middot; FastAPI + MySQL (XAMPP) + Bootstrap
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API = "";
+    const DEMO_TRAIN_ID = 1;
+    const DEMO_TRAIN_NAME = "Express 101";
+
+    // ---- shared helpers ----
+    async function api(path, options) {
+      const res = await fetch(API + path, options);
+      if (!res.ok) throw new Error("server returned HTTP " + res.status);
+      return res.json();
+    }
+
+    function setBusy(busy) {
+      document.querySelectorAll("button").forEach((b) => (b.disabled = busy));
+    }
+
+    // ---- live execution log (Panel C) ----
+    let lastEventId = 0;
+    const terminal = document.getElementById("terminalLog");
+
+    async function pollLog() {
+      try {
+        const data = await api("/api/log?since=" + lastEventId);
+        if (!data.events || data.events.length === 0) return;
+        for (const e of data.events) {
+          terminal.textContent += "[" + e.time + "] " + e.message + "\n";
+          lastEventId = e.id;
+        }
+        terminal.scrollTop = terminal.scrollHeight;
+        refreshDemoSeats();
+      } catch (_) { /* transient; will retry next tick */ }
+    }
+
+    // ---- seats display ----
+    async function refreshDemoSeats() {
+      const el = document.getElementById("demoSeats");
+      const statusEl = document.getElementById("demoSeatStatus");
+      try {
+        const data = await api("/api/seats?train_id=" + DEMO_TRAIN_ID);
+        if (data.error) { statusEl.textContent = data.error; return; }
+        const prev = el.textContent;
+        el.textContent = data.available_seats;
+        el.classList.toggle("full", data.available_seats <= 0);
+        statusEl.textContent = data.available_seats > 0
+          ? "Available for booking"
+          : "No seats left";
+        if (prev !== String(data.available_seats)) {
+          el.classList.add("bump");
+          setTimeout(() => el.classList.remove("bump"), 300);
+        }
+      } catch (_) { statusEl.textContent = "Cannot reach server"; }
+    }
+
+    // ---- Tab 1: trains list + normal booking ----
+    async function loadTrains() {
+      const container = document.getElementById("trainList");
+      try {
+        const data = await api("/api/trains");
+        container.innerHTML = "";
+        data.trains.forEach((t) => {
+          const col = document.createElement("div");
+          col.className = "col-md-6";
+          const full = t.available_seats <= 0;
+          col.innerHTML = `
+            <div class="card train-card h-100">
+              <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="card-title mb-1">${t.train_name}</h5>
+                  <p class="card-text text-muted mb-0 small">Train ID: ${t.train_id}</p>
+                </div>
+                <div class="text-end">
+                  <span class="badge ${full ? "bg-secondary" : "bg-success"} badge-seats mb-2 d-block">${t.available_seats} seat${t.available_seats === 1 ? "" : "s"}</span>
+                  <button class="btn btn-sm btn-primary book-btn" data-id="${t.train_id}" ${full ? "disabled" : ""}>
+                    <i class="bi bi-ticket-perforated"></i> Book Ticket
+                  </button>
+                </div>
+              </div>
+            </div>`;
+          container.appendChild(col);
+        });
+        container.querySelectorAll(".book-btn").forEach((btn) =>
+          btn.addEventListener("click", () => bookNormal(parseInt(btn.dataset.id, 10), btn))
+        );
+      } catch (_) {
+        container.innerHTML = '<div class="text-danger">Could not load trains. Is the backend running?</div>';
+      }
+    }
+
+    async function bookNormal(trainId, btn) {
+      const alertBox = document.getElementById("bookingAlert");
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-hourglass-split spin"></i> Booking...';
+      try {
+        const data = await api("/api/book_normal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: "Passenger", train_id: trainId }),
+        });
+        alertBox.className = "alert alert-demo mt-3 " + (data.success ? "alert-success" : "alert-warning");
+        alertBox.textContent = data.message;
+        alertBox.classList.remove("d-none");
+        await loadTrains();
+        refreshDemoSeats();
+      } catch (err) {
+        alertBox.className = "alert alert-demo mt-3 alert-danger";
+        alertBox.textContent = "Booking failed: " + err.message;
+        alertBox.classList.remove("d-none");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    }
+
+    // ---- Tab 2: mock login ----
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById("loginAlert");
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      if (!username || !password) return;
+      try {
+        const data = await api("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const p = data.profile;
+        document.getElementById("profileCard").classList.remove("d-none");
+        document.getElementById("profilePlaceholder").classList.add("d-none");
+        document.getElementById("profileName").textContent = p.name;
+        document.getElementById("profileEmail").textContent = p.email;
+        document.getElementById("profileAge").textContent = p.age;
+        document.getElementById("profileAvatar").textContent = p.name.charAt(0).toUpperCase();
+        const list = document.getElementById("profileBookings");
+        list.innerHTML = "";
+        p.past_bookings.forEach((b) => {
+          const li = document.createElement("li");
+          li.className = "list-group-item d-flex justify-content-between align-items-center";
+          li.innerHTML = `<span><i class="bi bi-train-front"></i> ${b.train}</span>
+            <span><small class="text-muted me-2">${b.date}</small><span class="badge bg-success">${b.status}</span></span>`;
+          list.appendChild(li);
+        });
+        alertBox.className = "alert alert-demo mt-3 alert-success";
+        alertBox.textContent = "Login successful (mock).";
+        alertBox.classList.remove("d-none");
+      } catch (err) {
+        alertBox.className = "alert alert-demo mt-3 alert-danger";
+        alertBox.textContent = "Login failed: " + err.message;
+        alertBox.classList.remove("d-none");
+      }
+    });
+
+    // ---- Tab 3: demo buttons ----
+    async function bookAs(endpoint, user) {
+      try {
+        return await api(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user, train_id: DEMO_TRAIN_ID }),
+        });
+      } catch (err) {
+        return { success: false, user, error: err.message };
+      }
+    }
+
+    async function runDemo(endpoint) {
+      const resultEl = document.getElementById("demoResult");
+      resultEl.className = "result-box small text-muted";
+      resultEl.textContent = "Two requests are in flight...";
+      setBusy(true);
+
+      // Two requests start in the same tick so they overlap on the server.
+      const [r1, r2] = await Promise.all([
+        bookAs(endpoint, "User 1"),
+        bookAs(endpoint, "User 2"),
+      ]);
+      const winners = [r1, r2].filter((r) => r.success).length;
+      const failed = [r1, r2].find((r) => r.error);
+
+      if (failed) {
+        resultEl.className = "result-box small alert alert-danger alert-demo p-2 mt-2";
+        resultEl.textContent = "A request failed: " + failed.error;
+      } else if (winners === 2) {
+        resultEl.className = "result-box small alert alert-danger alert-demo p-2 mt-2";
+        resultEl.textContent = "DOUBLE-BOOKING: both users were told they got the only seat!";
+      } else if (winners === 1) {
+        resultEl.className = "result-box small alert alert-success alert-demo p-2 mt-2";
+        resultEl.textContent = "Correct: one user booked, the other was rejected. No double-booking.";
+      } else {
+        resultEl.className = "result-box small alert alert-warning alert-demo p-2 mt-2";
+        resultEl.textContent = "Nobody got a seat. Press Reset Seats to 1 to run the demo again.";
+      }
+
+      setBusy(false);
+      refreshDemoSeats();
+      loadTrains();
+    }
+
+    document.getElementById("btnRace").addEventListener("click", () => runDemo("/api/demo_book_without_sync"));
+    document.getElementById("btnSync").addEventListener("click", () => runDemo("/api/demo_book_with_sync"));
+
+    document.getElementById("btnReset").addEventListener("click", async () => {
+      setBusy(true);
+      try {
+        await api("/api/reset", { method: "POST" });
+        terminal.textContent = "";
+        document.getElementById("demoResult").className = "result-box small text-muted";
+        document.getElementById("demoResult").textContent = "Database reset. One seat is available again.";
+      } catch (_) { /* ignore */ }
+      setBusy(false);
+      refreshDemoSeats();
+      loadTrains();
+    });
+
+    document.getElementById("btnClearLog").addEventListener("click", () => { terminal.textContent = ""; });
+
+    // ---- bootstrap ----
+    loadTrains();
+    refreshDemoSeats();
+    setInterval(pollLog, 300);
+    setInterval(refreshDemoSeats, 1500);
+  </script>
+</body>
+</html>
