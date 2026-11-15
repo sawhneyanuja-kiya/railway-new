@@ -1,487 +1,2188 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Railway Reservation System | Viva Demo</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eff3f2">
+  <title>Smart Railway Directory & Concurrent Booking Lab</title>
   <style>
     :root {
-      --rail-blue: #1d4e89;
-      --rail-blue-dark: #163b66;
-      --rail-gold: #f0a202;
-      --rail-red: #d62828;
-      --rail-green: #2a9d8f;
+      color-scheme: light dark;
+      --page: #eff3f2;
+      --surface: #fff;
+      --surface-soft: #f7f9f8;
+      --ink: #172a25;
+      --muted: #71817b;
+      --line: #dce5e1;
+      --green: #14785a;
+      --green-soft: #e2f4eb;
+      --red: #c64040;
+      --red-soft: #fff0ef;
+      --amber: #aa7100;
+      --amber-soft: #fff4d8;
+      --navy: #14332c;
+      --shadow: 0 12px 35px #18342a0d;
+      --mono: "Cascadia Code", Consolas, monospace;
     }
-
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: #eef2f6;
-      min-height: 100vh;
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #111a17; --surface: #1b2621; --surface-soft: #222f29;
+        --ink: #edf5f0; --muted: #a4b2aa; --line: #35453c;
+        --green: #72d3a9; --green-soft: #203d30; --red: #ff9992;
+        --red-soft: #442b2b; --amber: #f3c35f; --amber-soft: #44391f;
+        --navy: #0e1713; --shadow: 0 12px 35px #00000025;
+      }
     }
-
-    .hero {
-      background: linear-gradient(120deg, var(--rail-blue) 0%, var(--rail-blue-dark) 100%);
-      color: #fff;
-      padding: 2rem 0 1.4rem;
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 85px; }
+    body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #e8b959; outline-offset: 2px; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .56; }
+    .wrap { width: min(1380px, calc(100% - 40px)); margin: 0 auto; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    .topbar { position: fixed; inset: 0 auto 0 0; z-index: 20; width: 245px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 96%, transparent); backdrop-filter: blur(14px); }
+    .nav { height: 100%; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 18px; padding: 18px 14px; }
+    #dashboard { margin-left: 245px; }
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: var(--green); color: #fff; font-size: 19px; }
+    .brand-mark svg { width: 22px; height: 22px; }
+    .brand strong { display: block; font-size: 14px; letter-spacing: -.02em; }
+    .nav-right { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: auto; }
+    .nav-link { padding: 0; border: 0; background: transparent; color: var(--muted); font-weight: 650; }
+    .nav-link:hover { color: var(--green); }
+    .nav-user { color: var(--green); font-size: 11px; font-weight: 750; overflow-wrap: anywhere; }
+    .app-tabs { display: flex; min-width: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; margin: 0; padding: 4px 0; border: 0; border-radius: 9px; background: transparent; overflow: visible; }
+    .app-tab { display: inline-flex; width: 100%; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 8px; border: 0; border-radius: 7px; padding: 10px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; text-align: left; white-space: nowrap; transition: background .15s, color .15s; }
+    .app-tab:hover { background: var(--surface-soft); color: var(--ink); }
+    .app-tab[aria-selected="true"] { background: var(--green-soft); color: var(--green); }
+    .nav-icon { width: 15px; height: 15px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .btn { border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; background: var(--surface); color: var(--ink); font-weight: 700; }
+    .btn:hover:not(:disabled) { border-color: var(--green); }
+    .btn-primary { border-color: var(--green); background: var(--green); color: #fff; }
+    .btn-primary:hover:not(:disabled) { filter: brightness(.94); }
+    .btn-danger { border-color: #efcfcd; color: var(--red); }
+    .main { padding-top: 29px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 0 0 19px; }
+    .eyebrow { color: var(--green); font: 700 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 7px 0 3px; font-size: clamp(24px, 3vw, 33px); line-height: 1.15; letter-spacing: -.04em; }
+    .hero-title { max-width: 800px; font-size: clamp(28px, 4vw, 42px); }
+    .subtitle { margin: 0; color: var(--muted); }
+    .login-shell { min-height: calc(100vh - 66px); display: grid; place-items: center; padding: 28px 16px; }
+    .login-card { width: min(440px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+    .login-card h1 { margin: 9px 0; font-size: 30px; }
+    .login-card p { color: var(--muted); font-size: 12px; }
+    .login-form { display: grid; gap: 12px; margin-top: 21px; }
+    .login-form label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .login-form input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); color: var(--ink); }
+    .login-hint { margin: 12px 0 0; color: var(--muted); font-size: 10px; }
+    .login-error { min-height: 18px; color: var(--red); font-size: 11px; }
+    .tab-content { min-width: 0; }
+    .date-greeting { margin-bottom: 8px; color: var(--muted); font-size: 11px; }
+    .date-greeting strong { color: var(--green); }
+    [hidden] { display: none !important; }
+    .live-badge { display: flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #29a66d; box-shadow: 0 0 0 4px #29a66d1c; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat-card { display: grid; gap: 5px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow); }
+    .stat-card strong { display: block; font: 700 21px/1.1 var(--mono); }
+    .stat-card small { color: var(--muted); font-size: 11px; }
+    .layout { display: grid; grid-template-columns: minmax(250px, .75fr) minmax(340px, 1.25fr) minmax(240px, .75fr); gap: 14px; align-items: start; }
+    .panel { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 18px 14px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
+    .panel-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .panel-body { padding: 16px 18px 18px; }
+    .search { width: 100%; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); color: var(--ink); }
+    .train-list { display: grid; gap: 8px; max-height: 520px; overflow: auto; }
+    .train-card { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); text-align: left; transition: border-color .15s, background .15s; }
+    .train-card:hover { border-color: var(--green); }
+    .train-card.selected { border-color: var(--green); background: var(--green-soft); box-shadow: inset 3px 0 var(--green); }
+    .train-top { display: flex; justify-content: space-between; gap: 10px; }
+    .train-no { color: var(--green); font: 700 11px var(--mono); }
+    .train-name { display: block; margin: 3px 0 8px; font-weight: 750; }
+    .route { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+    .route-line { flex: 1; border-top: 1px dashed var(--line); }
+    .train-times { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+    .availability { align-self: start; padding: 3px 7px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 10px; white-space: nowrap; }
+    .availability.low { background: var(--amber-soft); color: var(--amber); }
+    .directory-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 10px; }
+    .route-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 13px; border-radius: 9px; background: var(--surface-soft); }
+    .station { font-weight: 750; }
+    .station small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; }
+    .route-arrow { flex: 1; min-width: 20px; color: var(--green); text-align: center; }
+    .coach-label { margin: 18px 0 8px; color: var(--muted); font: 700 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .coach-tabs { display: flex; gap: 7px; overflow: auto; padding-bottom: 4px; }
+    .coach-tab { min-width: 66px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; background: var(--surface); color: var(--muted); text-align: center; }
+    .coach-tab strong { display: block; color: var(--ink); font: 700 12px var(--mono); }
+    .coach-tab small { font-size: 9px; }
+    .coach-tab.active { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+    .coach-tab.active strong { color: var(--green); }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0 9px; color: var(--muted); font-size: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--green); }
+    .legend-dot.booked { background: #89968f; }
+    .legend-dot.conflict { background: var(--red); }
+    .legend-dot.target { background: var(--amber); }
+    .seat-grid { display: grid; grid-template-columns: repeat(4, minmax(88px, 1fr)); gap: 8px; }
+    .seat-card { position: relative; min-height: 86px; padding: 9px; border: 1px solid color-mix(in srgb, var(--green) 32%, var(--line)); border-radius: 9px; background: var(--green-soft); transition: transform .12s, box-shadow .12s; }
+    .seat-card.available { color: var(--green); }
+    .seat-card.booked { border-color: var(--line); background: var(--surface-soft); color: var(--muted); }
+    .seat-card.conflict { border-color: var(--red); background: var(--red-soft); color: var(--red); animation: pulse 1.2s ease-in-out infinite; }
+    .seat-card.selected { box-shadow: inset 0 0 0 2px var(--green); }
+    .seat-card.target { outline: 2px solid var(--amber); outline-offset: 1px; }
+    .seat-card.running { border-color: var(--amber); background: var(--amber-soft); color: var(--amber); }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--red) 15%, transparent); } }
+    .seat-select { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+    .seat-label { display: block; font: 750 11px var(--mono); }
+    .seat-type { display: block; margin: 3px 0 6px; color: var(--muted); font-size: 9px; }
+    .seat-status { display: block; font-size: 9px; font-weight: 700; }
+    .passenger { display: block; overflow: hidden; margin-top: 4px; color: var(--ink); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .target-check { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; accent-color: var(--amber); }
+    .target-note { margin: 9px 0 0; color: var(--muted); font-size: 10px; }
+    .input { min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+    .selection-note { grid-column: 1 / -1; color: var(--muted); font-size: 10px; }
+    .toast { min-height: 18px; margin-top: 8px; color: var(--green); font-size: 11px; }
+    .toast.error { color: var(--red); }
+    .booking-actions { display: flex; gap: 7px; }
+    .booking-flow-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 15px; }
+    .booking-details { display: grid; gap: 10px; max-width: 560px; margin-top: 18px; }
+    .booking-details label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .booking-details input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); color: var(--ink); }
+    .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+    .summary-item { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+    .summary-item small { display: block; color: var(--muted); font-size: 10px; }
+    .summary-item strong { display: block; margin-top: 3px; font-size: 13px; overflow-wrap: anywhere; }
+    .profile-card { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px; margin-top: 17px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+    .profile-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; background: var(--green-soft); color: var(--green); font-weight: 800; }
+    .simulation-intro { margin-bottom: 16px; }
+    .simulation-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .simulation-mode { display: flex; align-items: flex-start; gap: 12px; min-height: 100px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); text-align: left; transition: border-color .15s, background .15s, transform .15s; }
+    .simulation-mode:hover { border-color: var(--green); transform: translateY(-1px); }
+    .simulation-mode[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); box-shadow: inset 3px 0 var(--green); }
+    .simulation-mode.unsafe[aria-pressed="true"] { border-color: var(--red); background: var(--red-soft); box-shadow: inset 3px 0 var(--red); }
+    .simulation-mode svg { width: 25px; height: 25px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .simulation-mode.unsafe { color: var(--red); }
+    .simulation-mode.safe { color: var(--green); }
+    .simulation-mode strong, .simulation-mode small { display: block; }
+    .simulation-mode small { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .simulation-mode .mode-cta { display: inline-block; margin-top: 10px; padding: 6px 9px; border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 10px; font-weight: 750; }
+    .simulation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 15px 0; }
+    .simulation-controls select, .simulation-controls input { min-width: 125px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+    .simulation-controls input[type="range"] { min-width: 110px; padding: 9px 0; }
+    #simulation-status { flex-basis: 100%; color: var(--muted); font-size: 10px; }
+    #simulation-status.error { color: var(--red); }
+    .simulation-workspace { display: grid; grid-template-columns: minmax(190px, .55fr) minmax(0, 1.45fr); gap: 12px; }
+    .simulation-visual, .simulation-timeline { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+    .simulation-seat { display: grid; justify-items: center; gap: 5px; padding: 18px 10px; border: 1px solid var(--green); border-radius: 10px; background: var(--green-soft); color: var(--green); text-align: center; transition: .2s; }
+    .simulation-seat.conflict { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+    .simulation-seat.booked { border-color: var(--green); background: var(--green-soft); }
+    .simulation-seat.running { border-color: var(--amber); background: var(--amber-soft); color: var(--amber); }
+    .simulation-seat svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .simulation-lock { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font: 11px var(--mono); }
+    .simulation-lock svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+    .simulation-lock.locked { color: var(--amber); border-color: var(--amber); background: var(--amber-soft); }
+    .simulation-lock.unlocked { color: var(--green); }
+    .process-lanes { display: grid; gap: 7px; max-height: 335px; overflow: auto; }
+    .process-lane { display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+    .process-lane strong { font: 700 10px var(--mono); }
+    .process-events { display: grid; gap: 3px; color: var(--muted); font-size: 10px; }
+    .process-events .event { padding: 2px 5px; border-radius: 4px; }
+    .simulation-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .simulation-results .metric { min-width: 0; }
+    .simulation-log { max-height: 210px; height: auto; margin-top: 12px; }
+    .diagram { overflow: auto; margin-top: 15px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+    .diagram svg { display: block; width: 100%; min-width: 500px; height: auto; }
+    .challenge-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+    .challenge-card, .requirement-card { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+    .challenge-card h3, .requirement-card h3 { margin: 0 0 5px; font-size: 12px; }
+    .challenge-card p, .requirement-card p { margin: 0; color: var(--muted); font-size: 10px; }
+    .objective-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 18px; padding-left: 20px; }
+    .objective-list li { padding-left: 3px; color: var(--muted); font-size: 11px; }
+    .process-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .process-flow span { padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); text-align: center; font-size: 10px; font-weight: 700; }
+    .mutex-state { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--green); border-radius: 8px; background: var(--green-soft); color: var(--green); font: 700 12px var(--mono); }
+    .comparison-wrap { overflow-x: auto; margin-top: 16px; }
+    .comparison { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .comparison th, .comparison td { padding: 9px 10px; border: 1px solid var(--line); text-align: left; }
+    .comparison th { background: var(--surface-soft); }
+    .conflict-chart { display: grid; gap: 8px; margin-top: 12px; }
+    .conflict-row { display: grid; grid-template-columns: minmax(105px, .55fr) minmax(0, 1fr) 95px; align-items: center; gap: 9px; font-size: 10px; }
+    .conflict-track { height: 12px; overflow: hidden; border-radius: 999px; background: var(--surface-soft); }
+    .conflict-fill { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--red); transition: width .25s ease; }
+    .conflict-fill.safe { background: var(--green); }
+    .conflict-value { color: var(--muted); font: 10px var(--mono); text-align: right; }
+    .viva-faq { margin-top: 14px; }
+    .viva-faq details { border-top: 1px solid var(--line); }
+    .viva-faq summary { padding: 11px 2px; cursor: pointer; font-size: 11px; font-weight: 750; }
+    .viva-faq p { margin: 0 0 12px; color: var(--muted); font-size: 11px; }
+    .conclusion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 13px; }
+    .conclusion-grid .lesson-card.safe { border-color: var(--green); }
+    .conclusion-grid .lesson-card.unsafe { border-color: var(--red); }
+    .simulation-dashboard { display: grid; gap: 12px; margin-top: 16px; }
+    .simulation-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); gap: 12px; align-items: start; }
+    .simulation-process-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+    .simulation-process-card { min-width: 0; padding: 11px; border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; background: var(--surface); transition: border-color .2s, background .2s, transform .2s; }
+    .simulation-process-card.state-running { border-left-color: #4285d4; background: color-mix(in srgb, #4285d4 9%, var(--surface)); }
+    .simulation-process-card.state-waiting { border-left-color: var(--amber); background: var(--amber-soft); }
+    .simulation-process-card.state-blocked { border-left-color: #d98b22; background: color-mix(in srgb, #d98b22 12%, var(--surface)); }
+    .simulation-process-card.state-completed { border-left-color: var(--green); background: var(--green-soft); }
+    .simulation-process-card.state-rejected { border-left-color: var(--red); background: var(--red-soft); }
+    .process-card-top { display: flex; justify-content: space-between; gap: 7px; align-items: center; }
+    .process-card-top strong { font: 750 11px var(--mono); }
+    .process-state { padding: 3px 6px; border-radius: 999px; background: var(--surface-soft); color: var(--muted); font: 700 8px var(--mono); }
+    .process-card-passenger { margin-top: 6px; font-size: 11px; font-weight: 700; }
+    .process-card-detail { margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .simulation-resource { display: grid; gap: 12px; }
+    .resource-card { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+    .resource-card h3 { margin: 0 0 10px; font-size: 13px; }
+    .resource-seat { display: grid; justify-items: center; gap: 7px; padding: 15px 10px; border: 1px solid var(--green); border-radius: 9px; background: var(--green-soft); color: var(--green); text-align: center; }
+    .resource-seat.conflict { border-color: var(--red); background: var(--red-soft); color: var(--red); animation: pulse 1.2s ease-in-out infinite; }
+    .resource-seat.booked { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+    .resource-seat svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .resource-seat strong { font: 750 17px var(--mono); }
+    .seat-meta { display: grid; grid-template-columns: auto 1fr; gap: 5px 9px; width: 100%; color: var(--muted); font-size: 10px; text-align: left; }
+    .seat-meta b { color: var(--ink); text-align: right; }
+    .seat-passengers { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+    .passenger-chip { padding: 4px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: 9px; }
+    .conflict-warning { padding: 8px; border-radius: 7px; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; text-align: center; }
+    .mutex-panel { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
+    .mutex-panel.locked { border-color: var(--amber); background: var(--amber-soft); }
+    .mutex-icon { width: 42px; height: 42px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .mutex-panel.locked .mutex-icon { color: var(--amber); animation: lock-pulse .7s ease-in-out infinite alternate; }
+    @keyframes lock-pulse { to { transform: translateY(2px); } }
+    .mutex-value { color: var(--green); font: 800 24px var(--mono); }
+    .mutex-panel.locked .mutex-value { color: var(--amber); }
+    .mutex-detail { display: grid; gap: 6px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+    .mutex-detail strong { color: var(--ink); }
+    .waiting-queue { display: flex; flex-wrap: wrap; gap: 5px; min-height: 23px; }
+    .queue-token { padding: 4px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font: 700 9px var(--mono); }
+    .simulation-step-info { padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+    .simulation-step-info strong { display: block; font: 750 11px var(--mono); }
+    .simulation-step-info span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .comparison-table td strong { color: var(--ink); }
+    .consistency-good { color: var(--green) !important; }
+    .consistency-bad { color: var(--red) !important; }
+    .terminal-panel { min-width: 0; }
+    .terminal-panel .panel-head { padding-inline: 13px; }
+    .terminal-panel .panel-body { padding: 11px; }
+    .terminal { height: 525px; overflow: auto; margin: 0; padding: 10px; border-radius: 8px; background: #101a17; color: #e7f2eb; font: 10px/1.7 var(--mono); overflow-wrap: anywhere; }
+    .terminal-line { display: block; color: #d7e4dc; }
+    .terminal-line.waiting { color: #f3c35f; }
+    .terminal-line.entered { color: #ded4ff; }
+    .terminal-line.booked { color: #83d6a5; }
+    .terminal-line.rejected, .terminal-line.conflict, .terminal-line.error { color: #ff9690; }
+    .terminal-toolbar { display: flex; align-items: center; gap: 8px; }
+    .terminal-toolbar button { padding: 4px 7px; font-size: 9px; }
+    .tab-panel { min-width: 0; }
+    .lesson { padding: 21px; }
+    .lesson h2 { margin: 0 0 8px; font-size: 19px; }
+    .lesson p, .lesson li { color: var(--muted); font-size: 12px; }
+    .lesson-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 17px; }
+    .lesson-card { padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+    .lesson-card h3 { margin: 0 0 6px; font-size: 13px; }
+    .lesson-card p { margin: 0; }
+    .pseudocode { overflow: auto; padding: 15px; border-radius: 9px; background: #101a17; color: #e7f2eb; font: 11px/1.7 var(--mono); }
+    .section { margin-top: 18px; }
+    .stress-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .stress-head h2 { margin: 0; font-size: 16px; }
+    .stress-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .mode-switch { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0; }
+    .mode-option { display: flex; align-items: center; gap: 8px; min-width: 160px; flex: 1; padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+    .mode-option:has(input:checked) { border-color: var(--green); background: var(--green-soft); }
+    .mode-option input { accent-color: var(--green); }
+    .mode-option strong { display: block; font-size: 11px; }
+    .mode-option small { display: block; color: var(--muted); font-size: 9px; }
+    .stress-controls { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+    .field label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .field input, .field select { width: 110px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+    #stress-status { margin-left: auto; color: var(--muted); font-size: 10px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
+    .metric { padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+    .metric strong { display: block; font: 700 20px/1.15 var(--mono); }
+    .metric span { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .visualizer { height: 220px; overflow: auto; padding: 12px; border-radius: 9px; background: #101a17; color: #e7f2eb; font: 11px/1.75 var(--mono); }
+    .event { display: block; padding: 1px 5px; border-radius: 3px; }
+    .event.read { color: #b7d9ff; }
+    .event.waiting, .event.queued { color: #f3c35f; }
+    .event.booked { color: #83d6a5; }
+    .event.rejected, .event.conflict { color: #ff9690; }
+    .event.entered { color: #ded4ff; }
+    .concepts { margin-top: 18px; }
+    .concepts > summary { padding: 15px 18px; cursor: pointer; font-weight: 750; list-style: none; }
+    .concepts > summary::-webkit-details-marker { display: none; }
+    .concepts > summary::after { content: "+"; float: right; color: var(--green); font: 18px var(--mono); }
+    .concepts[open] > summary::after { content: "−"; }
+    .concept-content { padding: 0 18px 18px; }
+    .concept-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .concept-card { padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+    .concept-card h3 { margin: 0 0 5px; font-size: 12px; }
+    .concept-card p { margin: 0; color: var(--muted); font-size: 10px; }
+    .code-title { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin: 16px 0 7px; }
+    .code-title strong { font-size: 11px; }
+    .code-title button { border: 0; background: transparent; color: var(--green); font-size: 10px; font-weight: 700; }
+    .code-toolbar { display: flex; gap: 5px; padding: 8px 8px 0; border: 1px solid #263630; border-bottom: 0; border-radius: 8px 8px 0 0; background: #101a17; }
+    .code-tab { border: 0; border-bottom: 2px solid transparent; padding: 6px 9px; background: transparent; color: #a9bbb0; font: 10px var(--mono); }
+    .code-tab.active { border-bottom-color: #83d6a5; color: #83d6a5; }
+    .code-view { max-height: 380px; overflow: auto; margin: 0; padding: 10px 0; border: 1px solid #263630; border-radius: 0 0 8px 8px; background: #101a17; color: #e7f2eb; font: 10px/1.65 var(--mono); }
+    .code-line { display: block; min-width: max-content; padding: 0 12px; white-space: pre; }
+    .code-line.highlight { background: #a7832a2b; color: #f3d37e; }
+    .line-no { display: inline-block; width: 34px; margin-right: 10px; color: #74867a; text-align: right; user-select: none; }
+    .contributors-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .contributor-card { padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+    .contributor-card h3 { margin: 0; font-size: 14px; }
+    .contributor-card p { margin: 4px 0 0; color: var(--muted); font: 11px var(--mono); }
+    .run-guide { margin-top: 16px; padding: 14px; border-radius: 9px; background: #101a17; color: #e7f2eb; font: 11px/1.8 var(--mono); white-space: pre-wrap; }
+    footer { margin-top: 19px; padding: 17px 0 25px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+    .error-text { color: var(--red); }
+    @media (max-width: 1160px) {
+      .topbar { position: sticky; inset: auto; width: auto; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav { height: auto; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; padding-block: 8px; }
+      #dashboard { margin-left: 0; }
+      .nav-right { flex-direction: row; align-items: center; margin-top: 0; }
+      .app-tabs { order: 3; flex-basis: 100%; flex-direction: row; justify-content: flex-start; overflow-x: auto; }
+      .app-tab { width: auto; justify-content: center; text-align: center; }
+      .layout { grid-template-columns: minmax(285px, .8fr) minmax(0, 1.2fr); }
+      .terminal-panel { grid-column: 1 / -1; }
+      .terminal { height: 260px; }
+      .seat-grid { grid-template-columns: repeat(3, minmax(80px, 1fr)); }
+      .challenge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    .hero h1 { font-weight: 700; letter-spacing: -0.01em; margin-bottom: .25rem; }
-    .hero .lead { color: #cfe2f3; margin-bottom: 0; }
-    .hero .accent-bar { width: 64px; height: 4px; background: var(--rail-gold); border-radius: 2px; margin-top: .8rem; }
-
-    .nav-tabs {
-      --bs-nav-tabs-link-active-color: var(--rail-blue);
-      --bs-nav-tabs-link-active-border-color: #dee2e6 #dee2e6 #fff;
-      --bs-nav-link-color: #495057;
-      --bs-nav-link-hover-color: var(--rail-blue);
-      border-bottom: 2px solid #dee2e6;
+    @media (max-width: 720px) {
+      .wrap { width: min(calc(100% - 24px), 580px); }
+      .nav { align-items: flex-start; flex-wrap: wrap; padding: 10px 0; }
+      .nav-right { gap: 9px; }
+      .nav-user { display: none; }
+      .page-heading { align-items: flex-start; flex-direction: column; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-card { padding: 10px; }
+      .app-tabs { justify-content: flex-start; }
+      .layout { grid-template-columns: 1fr; }
+      .terminal-panel { grid-column: auto; }
+      .train-list { max-height: 360px; }
+      .seat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:last-child { grid-column: span 2; }
+      .concept-grid { grid-template-columns: 1fr; }
+      .lesson-grid { grid-template-columns: 1fr; }
+      .contributors-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .simulation-modes, .simulation-workspace, .conclusion-grid { grid-template-columns: 1fr; }
+      .simulation-grid { grid-template-columns: 1fr; }
+      .simulation-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .challenge-grid { grid-template-columns: 1fr; }
+      .objective-list { grid-template-columns: 1fr; }
+      .process-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #stress-status { width: 100%; margin-left: 0; }
     }
-    .nav-tabs .nav-link { font-weight: 600; padding: .65rem 1.1rem; }
-
-    .card {
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      box-shadow: 0 1px 3px rgba(16,42,67,.06);
-      margin-bottom: 1.25rem;
+    @media (max-width: 420px) {
+      .seat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .mode-option { min-width: 100%; }
+      .stress-controls .btn { flex: 1; }
     }
-    .card-header {
-      background: #fff;
-      border-bottom: 1px solid #eef2f6;
-      font-weight: 700;
-      border-radius: 14px 14px 0 0 !important;
-    }
-
-    .train-card {
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .train-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(16,42,67,.12); }
-
-    .badge-seats {
-      font-size: .9rem; padding: .4rem .7rem; border-radius: 8px; font-weight: 600;
-    }
-
-    .seat-big {
-      font-size: 4.5rem; line-height: 1; font-weight: 800;
-      color: var(--rail-green);
-      transition: color .3s ease, transform .3s ease;
-    }
-    .seat-big.full { color: var(--rail-red); }
-    .seat-big.bump { transform: scale(1.08); }
-
-    .btn-race {
-      background: var(--rail-red); border-color: var(--rail-red); color: #fff; font-weight: 600;
-    }
-    .btn-race:hover:not(:disabled) { background: #b21f1f; border-color: #b21f1f; color: #fff; }
-
-    .btn-sync {
-      background: var(--rail-blue); border-color: var(--rail-blue); color: #fff; font-weight: 600;
-    }
-    .btn-sync:hover:not(:disabled) { background: var(--rail-blue-dark); border-color: var(--rail-blue-dark); color: #fff; }
-
-    .terminal {
-      background: #0d1b2a; color: #e0e1dd; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .85rem; line-height: 1.55; border-radius: 10px; padding: 1rem;
-      height: 380px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1b263b;
-    }
-    .terminal::-webkit-scrollbar { width: 8px; }
-    .terminal::-webkit-scrollbar-thumb { background: #2a3a55; border-radius: 4px; }
-
-    .result-box { min-height: 52px; }
-    .alert-demo { border-radius: 10px; }
-
-    .profile-avatar {
-      width: 84px; height: 84px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--rail-blue), var(--rail-green));
-      color: #fff; font-size: 2rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
 </head>
 <body>
+  <section class="login-shell" id="login-screen">
+    <div class="login-card">
+      <span class="eyebrow">Railway Control Room · Demo access</span>
+      <h1>Welcome aboard.</h1>
+      <p>Sign in to explore the live train directory and process synchronization demo.</p>
+      <form class="login-form" id="login-form">
+        <label for="login-username">Passenger / examiner name
+          <input id="login-username" name="username" autocomplete="username" minlength="2" maxlength="60" placeholder="e.g. Anuja Sawhney" required>
+        </label>
+        <label for="login-password">Demo password
+          <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Enter any demo password" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Login to dashboard</button>
+        <div class="login-error" id="login-error" role="alert"></div>
+      </form>
+      <p class="login-hint">Demo-only sign-in: any non-empty password works. No password is stored or sent to a third party.</p>
+    </div>
+  </section>
 
-  <header class="hero">
-    <div class="container">
-      <h1><i class="bi bi-train-front-fill"></i> Railway Reservation System</h1>
-      <p class="lead">End-Semester Viva Demo &middot; Process Synchronization: Mutex / Locks</p>
-      <div class="accent-bar"></div>
+  <header class="topbar" id="app-header" hidden>
+    <div class="wrap nav" role="navigation" aria-label="Main navigation">
+      <a class="brand" href="#">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M7 7h10v5H7zM8 21l2-3m6 3-2-3M4 13h16M8 15h.01M16 15h.01"/></svg></span>
+        <span><strong>Railway Control Room</strong></span>
+      </a>
+      <nav class="app-tabs" role="tablist" aria-label="Main sections">
+        <button class="app-tab" id="tab-booking" type="button" role="tab" aria-controls="panel-booking" aria-selected="true" data-tab="panel-booking"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m16 14V5M7 7h10M7 12h10M7 17h10M2 19h20"/></svg>Trains</button>
+        <button class="app-tab" id="tab-passenger" type="button" role="tab" aria-controls="panel-passenger" aria-selected="false" data-tab="panel-passenger"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Passenger details</button>
+        <button class="app-tab" id="tab-summary" type="button" role="tab" aria-controls="panel-summary" aria-selected="false" data-tab="panel-summary"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4H7zM5 5H3v16h18V5h-2M7 12h10M7 16h7"/></svg>Booking summary</button>
+        <button class="app-tab" id="tab-problem" type="button" role="tab" aria-controls="panel-problem" aria-selected="false" data-tab="panel-problem"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>The Problem</button>
+        <button class="app-tab" id="tab-solution" type="button" role="tab" aria-controls="panel-solution" aria-selected="false" data-tab="panel-solution"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>The Solution</button>
+        <button class="app-tab" id="tab-simulation" type="button" role="tab" aria-controls="panel-simulation" aria-selected="false" data-tab="panel-simulation"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h17M8 15l4-5 3 2 5-7"/><path d="M17 5h3v3"/></svg>Simulation</button>
+        <button class="app-tab" id="tab-profile" type="button" role="tab" aria-controls="panel-profile" aria-selected="false" data-tab="panel-profile"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</button>
+        <button class="app-tab" id="tab-contributors" type="button" role="tab" aria-controls="panel-contributors" aria-selected="false" data-tab="panel-contributors"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0m1-5a5 5 0 0 1 5 5"/></svg>Contributors</button>
+      </nav>
+      <div class="nav-right">
+        <span class="nav-user" id="nav-user"></span>
+        <button class="btn" id="logout" type="button">Logout</button>
+      </div>
     </div>
   </header>
 
-  <div class="container my-4">
-
-    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button" role="tab">
-          <i class="bi bi-ticket-perforated"></i> Passenger Booking
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab">
-          <i class="bi bi-person-circle"></i> User Profile
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="demo-tab" data-bs-toggle="tab" data-bs-target="#demo" type="button" role="tab">
-          <i class="bi bi-diagram-3"></i> How It Actually Works
-        </button>
-      </li>
-    </ul>
-
-    <div class="tab-content p-3 p-md-4 bg-white border border-top-0 rounded-bottom shadow-sm" style="border-radius: 0 0 14px 14px;">
-
-      <!-- TAB 1: PASSENGER BOOKING -->
-      <div class="tab-pane fade show active" id="booking" role="tabpanel">
-        <h4 class="mb-1">Available Trains</h4>
-        <p class="text-muted mb-4">Browse trains and book a single ticket. This is the normal, single-user path.</p>
-
-        <div id="trainList" class="row g-3">
-          <div class="text-muted">Loading trains...</div>
-        </div>
-
-        <div id="bookingAlert" class="alert alert-demo mt-3 d-none" role="alert"></div>
+  <div id="dashboard" hidden>
+  <main class="wrap main">
+    <div class="page-heading">
+      <div>
+        <div class="date-greeting"><strong id="greeting-label">Welcome</strong> · <time id="current-datetime">Loading date and time…</time></div>
+        <span class="eyebrow">Indian Railways · Live demo environment</span>
+        <h1 class="hero-title">Discover Trains. Book Comfort. Travel Smart.</h1>
+        <p class="subtitle">A working railway directory and a hands-on process synchronization lab.</p>
       </div>
+      <div class="live-badge"><span class="dot"></span> SQLite database connected</div>
+    </div>
+    <div class="toast" id="booking-message" role="status" aria-live="polite"></div>
 
-      <!-- TAB 2: USER PROFILE -->
-      <div class="tab-pane fade" id="profile" role="tabpanel">
-        <h4 class="mb-1">User Login</h4>
-        <p class="text-muted mb-4">Enter any username and password. Authentication is mocked for this demo.</p>
+    <section class="stats" aria-label="Railway directory summary">
+      <article class="stat-card"><strong id="stat-trains">—</strong><small>Demo trains</small></article>
+      <article class="stat-card"><strong id="stat-coaches">—</strong><small>Passenger coaches</small></article>
+      <article class="stat-card"><strong id="stat-seats">—</strong><small>Total berths</small></article>
+      <article class="stat-card"><strong id="stat-available">—</strong><small>Available now</small></article>
+    </section>
 
-        <div class="row g-4">
-          <div class="col-md-5">
-            <div class="card">
-              <div class="card-body">
-                <form id="loginForm">
-                  <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control" id="loginUsername" placeholder="e.g. arjun" required />
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" id="loginPassword" placeholder="any password" required />
-                  </div>
-                  <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                  </button>
-                </form>
-                <div id="loginAlert" class="alert alert-demo mt-3 d-none" role="alert"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-7">
-            <div id="profileCard" class="card d-none">
-              <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                  <div class="profile-avatar me-3" id="profileAvatar">U</div>
-                  <div>
-                    <h5 class="mb-0" id="profileName">User</h5>
-                    <small class="text-muted" id="profileEmail">user@demo.edu</small>
-                  </div>
-                </div>
-                <p class="mb-2"><strong>Age:</strong> <span id="profileAge">-</span></p>
-                <h6 class="mt-3">Past Bookings</h6>
-                <ul class="list-group list-group-flush" id="profileBookings"></ul>
-              </div>
-            </div>
-            <div id="profilePlaceholder" class="text-muted p-4 text-center border rounded-3 border-dashed">
-              <i class="bi bi-person-lines-fill fs-1 d-block mb-2"></i>
-              Your mock profile will appear here after login.
-            </div>
-          </div>
+    <div class="tab-content">
+    <section class="tab-panel" id="panel-booking" role="tabpanel" aria-labelledby="tab-booking">
+    <div class="layout" id="directory">
+      <section class="panel" aria-labelledby="directory-title">
+        <div class="panel-head"><div><h2 id="directory-title">1. Choose a train</h2><p>Search by train number, name, or route</p></div><span class="availability" id="train-count">5 trains</span></div>
+        <div class="panel-body">
+          <label class="sr-only" for="train-search">Search trains</label>
+          <input class="search" id="train-search" type="search" placeholder="⌕  e.g. 12951, Rajdhani, Mumbai">
+          <div class="train-list" id="train-list" aria-live="polite"></div>
+          <div class="directory-footer"><span>Schedule and berth data are preloaded demo records.</span><span>IST</span></div>
         </div>
-      </div>
+      </section>
 
-      <!-- TAB 3: HOW IT ACTUALLY WORKS -->
-      <div class="tab-pane fade" id="demo" role="tabpanel">
-        <h4 class="mb-1">The Core Viva Demo: Race Condition vs. Mutex</h4>
-        <p class="text-muted mb-4">One train (<strong>Express 101</strong>) has exactly 1 seat. Each button fires two booking requests at the same time and shows what happens.</p>
-
-        <div class="row g-3">
-
-          <!-- Panel A: Live Database -->
-          <div class="col-lg-4">
-            <div class="card h-100">
-              <div class="card-header"><i class="bi bi-database-fill"></i> Panel A &middot; Live Database</div>
-              <div class="card-body text-center">
-                <p class="text-muted mb-1">Express 101 &middot; seats available</p>
-                <div id="demoSeats" class="seat-big">-</div>
-                <p id="demoSeatStatus" class="text-muted mt-2 mb-3">Loading...</p>
-                <button id="btnReset" class="btn btn-outline-secondary w-100">
-                  <i class="bi bi-arrow-counterclockwise"></i> Reset Seats to 1
-                </button>
-              </div>
-            </div>
+      <section class="panel" aria-labelledby="booking-title">
+        <div class="panel-head"><div><h2 id="booking-title">2. Select a berth & book</h2><p id="layout-subtitle">Choose a train to inspect its seat map</p></div><span class="availability" id="availability-badge">— available</span></div>
+        <div class="panel-body" id="layout-content">
+          <div class="route-banner" id="route-banner"></div>
+          <p class="coach-label">Choose a coach class</p>
+          <div class="coach-tabs" id="coach-tabs" role="tablist" aria-label="Train coaches"></div>
+          <div class="map-legend">
+            <span class="legend-item"><i class="legend-dot"></i> Available</span>
+            <span class="legend-item"><i class="legend-dot booked"></i> Booked</span>
+            <span class="legend-item"><i class="legend-dot conflict"></i> Double-booked conflict</span>
+            <span class="legend-item"><i class="legend-dot target"></i> Stress target</span>
           </div>
-
-          <!-- Panel B: Execution Controls -->
-          <div class="col-lg-4">
-            <div class="card h-100">
-              <div class="card-header"><i class="bi bi-sliders"></i> Panel B &middot; Execution Controls</div>
-              <div class="card-body d-grid gap-2">
-                <button id="btnRace" class="btn btn-race">
-                  <i class="bi bi-exclamation-triangle-fill"></i> Trigger Race Condition (No Sync)
-                </button>
-                <button id="btnSync" class="btn btn-sync">
-                  <i class="bi bi-shield-lock-fill"></i> Trigger Synchronized Booking (Mutex)
-                </button>
-                <hr class="my-2" />
-                <div id="demoResult" class="result-box text-muted small">
-                  Press a button to start two booking requests at the same time.
-                </div>
-              </div>
-            </div>
+          <div class="seat-grid" id="seat-grid" aria-label="Interactive seat map"></div>
+          <p class="target-note">Select a seat card to book it. Check the amber box to include a berth in the concurrency test (up to 5).</p>
+          <div class="booking-actions">
+            <button class="btn btn-danger" id="cancel-button" type="button" disabled>Cancel selected booking</button>
+            <button class="btn btn-primary" id="passenger-continue" type="button" disabled>Passenger details</button>
           </div>
-
-          <!-- Panel C: Execution Log -->
-          <div class="col-lg-4">
-            <div class="card h-100">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-terminal-fill"></i> Panel C &middot; Execution Log</span>
-                <button id="btnClearLog" class="btn btn-sm btn-outline-secondary">Clear</button>
-              </div>
-              <div class="card-body p-2">
-                <pre id="terminalLog" class="terminal m-0"></pre>
-              </div>
-            </div>
-          </div>
-
+          <span class="selection-note" id="selection-note">Select an available berth to continue.</span>
         </div>
-      </div>
+      </section>
 
+      <aside class="panel terminal-panel" aria-labelledby="live-log-title">
+        <div class="panel-head">
+          <div><h2 id="live-log-title">Live Execution Log</h2><p>Backend mutex events · auto-updating</p></div>
+          <div class="terminal-toolbar"><span class="dot" aria-label="Live"></span><button class="btn" id="clear-live-log" type="button">Clear</button></div>
+        </div>
+        <div class="panel-body"><pre class="terminal" id="live-log" role="log" aria-live="polite" aria-label="Backend booking events"><span class="terminal-line">Waiting for backend events…</span></pre></div>
+      </aside>
     </div>
 
-    <footer class="text-center text-muted small my-4">
-      Railway Reservation System &middot; OS Process Synchronization Demo &middot; FastAPI + MySQL (XAMPP) + Bootstrap
-    </footer>
+    <section class="panel section" id="stress" aria-labelledby="stress-title">
+      <div class="panel-head"><div class="stress-head"><div><h2 id="stress-title">Concurrent booking simulator</h2><p>Release passenger threads together and watch the critical section race—or synchronize it.</p></div></div><span class="availability low">OS PROCESS SYNC</span></div>
+      <div class="panel-body">
+        <div class="mode-switch" role="radiogroup" aria-label="Synchronization mode">
+          <label class="mode-option"><input type="radio" name="sync-mode" value="unsafe" checked><span><strong>Mode A · Unsafe</strong><small>No lock · reproducible race</small></span></label>
+          <label class="mode-option"><input type="radio" name="sync-mode" value="mutex"><span><strong>Mode B · Per-seat Mutex</strong><small>One winner per berth</small></span></label>
+          <label class="mode-option"><input type="radio" name="sync-mode" value="semaphore"><span><strong>Mode C · Semaphore Queue</strong><small>FIFO buffer · capacity 5</small></span></label>
+        </div>
+        <div class="stress-controls">
+          <div class="field"><label for="user-count">Concurrent passengers</label><input id="user-count" type="number" min="2" max="30" value="15"></div>
+          <button class="btn btn-primary" id="run-simulation" type="button">Launch Concurrent Booking Test</button>
+          <button class="btn btn-danger" id="reset-demo" type="button">Reset Demo Data</button>
+          <span id="stress-status" role="status">Select 1–5 amber target seats above; otherwise the selected berth is used.</span>
+        </div>
+        <div class="metrics" aria-live="polite">
+          <div class="metric"><strong id="metric-requests">0</strong><span>Total requests</span></div>
+          <div class="metric"><strong id="metric-confirmed">0</strong><span>Confirmed bookings</span></div>
+          <div class="metric"><strong id="metric-rejected">0</strong><span>Rejected / sold out</span></div>
+          <div class="metric"><strong id="metric-conflicts">0</strong><span>Double-booking conflicts</span></div>
+          <div class="metric"><strong id="metric-time">0 ms</strong><span>Execution time</span></div>
+        </div>
+        <div class="visualizer" id="visualizer" role="log" aria-live="polite" aria-label="Concurrent thread lifecycle">
+          <span class="event">Waiting for a simulation. Each line is a thread's observed lifecycle event.</span>
+        </div>
+      </div>
+    </section>
+    </section>
+
+    <section class="tab-panel" id="panel-passenger" role="tabpanel" aria-labelledby="tab-passenger" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Booking step 2 of 3</span>
+        <h2>Passenger details</h2>
+        <p>Enter the passenger name exactly as it should appear on the booking.</p>
+        <div class="route-banner" id="passenger-selection"></div>
+        <form class="booking-details" id="passenger-form">
+          <label for="passenger-name">Passenger full name
+            <input id="passenger-name" name="passenger" autocomplete="name" placeholder="Enter passenger full name" minlength="2" maxlength="60" required>
+          </label>
+          <div class="booking-flow-actions">
+            <button class="btn" type="button" data-tab-target="panel-booking">Back to train selection</button>
+            <button class="btn btn-primary" type="submit">Review booking</button>
+          </div>
+        </form>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="panel-summary" role="tabpanel" aria-labelledby="tab-summary" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Booking step 3 of 3</span>
+        <h2>Booking summary</h2>
+        <p>Check the train, berth, and passenger details before confirming.</p>
+        <div class="summary-grid">
+          <div class="summary-item"><small>Train</small><strong id="summary-train">Select a train</strong></div>
+          <div class="summary-item"><small>Journey</small><strong id="summary-route">—</strong></div>
+          <div class="summary-item"><small>Coach & berth</small><strong id="summary-seat">Select an available berth</strong></div>
+          <div class="summary-item"><small>Passenger</small><strong id="summary-passenger">Enter passenger details</strong></div>
+        </div>
+        <div class="booking-flow-actions">
+          <button class="btn" type="button" data-tab-target="panel-passenger">Edit passenger details</button>
+          <button class="btn btn-primary" id="book-button" type="button" disabled>Confirm booking</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="panel-problem" role="tabpanel" aria-labelledby="tab-problem" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Tab 2 · The Problem</span>
+        <h2>One berth, two simultaneous checkouts.</h2>
+        <p>A railway seat is shared state. The vulnerable operation is a check-then-act sequence: read <code>status</code>, decide that the berth is available, then insert a booking and update the seat. Without synchronization, the operating-system scheduler can switch threads during database or payment I/O.</p>
+        <div class="lesson-grid">
+          <section class="lesson-card"><h3>At the same millisecond</h3><p>Process-1 and Process-2 both execute <code>SELECT status</code> and see AVAILABLE. Both pass the check, then both write a booking. The last seat update hides the lost update, while the two booking rows expose the double-booking conflict.</p></section>
+          <section class="lesson-card"><h3>Why it is nondeterministic</h3><p>Thread scheduling and I/O timing decide which interleaving occurs. The lab adds a controlled delay and barrier so the unsafe interleaving can be observed reliably instead of depending on luck.</p></section>
+        </div>
+        <pre class="pseudocode" style="margin-top:14px">Process-1: read AVAILABLE ─────┐
+                                ├─ both confirm ── two bookings, one berth
+Process-2: read AVAILABLE ─────┘</pre>
+        <h3>How the race unfolds</h3>
+        <div class="diagram" role="img" aria-label="Two booking processes both read an available seat before either writes a booking">
+          <svg viewBox="0 0 760 170" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="race-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#71817b"/></marker></defs>
+            <g font-family="system-ui,sans-serif" font-size="13" text-anchor="middle">
+              <rect x="15" y="25" width="145" height="48" rx="8" fill="#fff" stroke="#dce5e1"/><text x="87" y="54" fill="#172a25">Process 1 · read FREE</text>
+              <rect x="15" y="98" width="145" height="48" rx="8" fill="#fff" stroke="#dce5e1"/><text x="87" y="127" fill="#172a25">Process 2 · read FREE</text>
+              <rect x="260" y="25" width="155" height="48" rx="8" fill="#fff4d8" stroke="#aa7100"/><text x="337" y="54" fill="#172a25">I/O delay / switch</text>
+              <rect x="260" y="98" width="155" height="48" rx="8" fill="#fff4d8" stroke="#aa7100"/><text x="337" y="127" fill="#172a25">I/O delay / switch</text>
+              <rect x="520" y="55" width="220" height="62" rx="8" fill="#fff0ef" stroke="#c64040"/><text x="630" y="81" fill="#c64040">Two booking records</text><text x="630" y="101" fill="#c64040">for one berth · conflict</text>
+              <path d="M160 49h90m165 0h110l45 25M160 122h90m165 0h110l45-25" fill="none" stroke="#71817b" stroke-width="2" marker-end="url(#race-arrow)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="challenge-grid" aria-label="Booking concurrency challenges">
+          <section class="challenge-card"><h3>Mutual exclusion</h3><p>Only one thread may change a particular seat at a time.</p></section>
+          <section class="challenge-card"><h3>Atomicity</h3><p>Availability check and ticket commit must act as one indivisible operation.</p></section>
+          <section class="challenge-card"><h3>Progress</h3><p>A free berth should remain bookable; one waiting thread must not block unrelated seats.</p></section>
+          <section class="challenge-card"><h3>Bounded waiting</h3><p>High demand needs a finite queue and workers that eventually serve waiting requests.</p></section>
+        </div>
+        <h3>Project objectives</h3>
+        <ul class="objective-list">
+          <li>Demonstrate a check-then-act race using concurrent passenger threads.</li>
+          <li>Compare unsafe and synchronized outcomes against the same SQLite seat state.</li>
+          <li>Use per-seat locks to allow independent seat bookings in parallel.</li>
+          <li>Model high traffic with a bounded producer-consumer booking queue.</li>
+          <li>Relate event logs and seat-map conflicts to operating-system concepts.</li>
+          <li>Keep the database local and repeatable for classroom demonstrations.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="panel-solution" role="tabpanel" aria-labelledby="tab-solution" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Tab 3 · The Solution</span>
+        <h2>Make the critical section exclusive.</h2>
+        <p>A mutex protects the complete read → check → write sequence. In this application each seat has its own <code>threading.Lock</code>, so requests for unrelated berths can proceed in parallel. The semaphore mode adds a producer-consumer queue with a fixed capacity of five.</p>
+        <div class="lesson-grid">
+          <section class="lesson-card"><h3>Mutex: one owner at a time</h3><p><code>wait(mutex)</code> acquires exclusive access; the seat check and booking commit happen inside the critical section; <code>signal(mutex)</code> releases it even when the booking is rejected.</p></section>
+          <section class="lesson-card"><h3>Semaphore: coordinate queue slots</h3><p><code>empty</code> counts free buffer slots and <code>full</code> counts queued requests. Producers wait for <code>empty</code>; consumers wait for <code>full</code>; both acquire the buffer mutex only after their semaphore wait succeeds.</p></section>
+        </div>
+        <pre class="pseudocode" aria-label="Mutex critical section pseudocode">wait(seat.mutex)
+try:
+    if seat.status == AVAILABLE:
+        commit_booking(seat, passenger)
+    else:
+        reject_booking(passenger)
+finally:
+    signal(seat.mutex)</pre>
+        <h3>Synchronization flow</h3>
+        <div class="process-flow" aria-label="Mutex workflow">
+          <span>Request seat lock</span><span>Read + check status</span><span>Commit or reject</span><span>Release lock</span>
+        </div>
+        <div class="lesson-grid">
+          <section class="lesson-card"><h3>Why per-seat, not global?</h3><p>A mutex per berth serializes only competing requests for that berth. Two passengers booking different seats can enter their separate critical sections at the same time, improving throughput without weakening correctness for either seat.</p></section>
+          <section class="lesson-card"><h3>SQLite and the process boundary</h3><p>A Python lock coordinates threads sharing this application process; it does not coordinate separate server processes. In a multi-worker deployment, use an atomic conditional update or a short <code>BEGIN IMMEDIATE</code> transaction, and enforce booking invariants in the database. SQLite serializes writers, but a stale read made before a write still needs protection.</p></section>
+        </div>
+        <h3>Bounded booking queue · capacity 5</h3>
+        <div class="diagram" role="img" aria-label="Passengers produce requests into a five-slot bounded queue consumed by ticket counters and committed to SQLite">
+          <svg viewBox="0 0 760 145" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="queue-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#14785a"/></marker></defs>
+            <g font-family="system-ui,sans-serif" font-size="13" text-anchor="middle">
+              <rect x="15" y="40" width="145" height="58" rx="8" fill="#fff" stroke="#dce5e1"/><text x="87" y="65" fill="#172a25">Passengers</text><text x="87" y="84" fill="#71817b">producers</text>
+              <rect x="245" y="25" width="270" height="88" rx="8" fill="#e2f4eb" stroke="#14785a"/><text x="380" y="49" fill="#14785a">Bounded booking queue · size 5</text>
+              <g fill="#fff" stroke="#14785a"><rect x="270" y="63" width="35" height="26" rx="4"/><rect x="317" y="63" width="35" height="26" rx="4"/><rect x="364" y="63" width="35" height="26" rx="4"/><rect x="411" y="63" width="35" height="26" rx="4"/><rect x="458" y="63" width="35" height="26" rx="4"/></g>
+              <text x="380" y="107" fill="#71817b">empty/full semaphores + mutex</text>
+              <rect x="600" y="40" width="145" height="58" rx="8" fill="#fff" stroke="#dce5e1"/><text x="672" y="65" fill="#172a25">Counters → SQLite</text><text x="672" y="84" fill="#71817b">consumers / commit</text>
+              <path d="M160 69h78m278 0h78" fill="none" stroke="#14785a" stroke-width="2" marker-end="url(#queue-arrow)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="comparison-wrap">
+          <table class="comparison">
+            <thead><tr><th>Semaphore / lock</th><th>Initial value</th><th>Purpose</th></tr></thead>
+            <tbody><tr><td><code>empty</code></td><td>5</td><td>Counts free slots; producers wait before inserting.</td></tr><tr><td><code>full</code></td><td>0</td><td>Counts queued requests; consumers wait before removing.</td></tr><tr><td><code>mutex</code></td><td>Unlocked</td><td>Protects queue operations only while appending or removing.</td></tr></tbody>
+          </table>
+        </div>
+        <p><strong>Lock ordering:</strong> wait on <code>empty</code> or <code>full</code> before acquiring the queue mutex. Waiting while holding the mutex can prevent a consumer or producer from making the change that would satisfy that wait.</p>
+      </article>
+    <details class="panel concepts" id="concepts">
+      <summary>How it works · Operating Systems concepts & live code inspector</summary>
+      <div class="concept-content">
+        <div class="concept-grid">
+          <article class="concept-card"><h3>Critical section & race condition</h3><p>Check-then-act is not atomic. A context switch during I/O lets two threads both read AVAILABLE before either records the ticket. SQLite serializes writes, but cannot repair a stale decision made before the write.</p></article>
+          <article class="concept-card"><h3>Fine-grained mutex</h3><p>Each berth gets its own threading.Lock. The read → availability check → write stays exclusive for that berth, while bookings for different seats can proceed concurrently.</p></article>
+          <article class="concept-card"><h3>Semaphore & bounded buffer</h3><p>empty starts at 5; full starts at 0. Producers wait for empty and consumers wait for full before acquiring the buffer mutex. This bounds queue memory and avoids holding the mutex while waiting.</p></article>
+        </div>
+        <div class="code-title"><strong>Live backend code · <code>booking.py</code></strong><button id="code-refresh" type="button">Reload source</button></div>
+        <div class="code-toolbar" role="tablist" aria-label="Code section">
+          <button class="code-tab active" role="tab" aria-selected="true" data-code-mode="unsafe">Unsafe check-then-act</button>
+          <button class="code-tab" role="tab" aria-selected="false" data-code-mode="mutex">Per-seat mutex</button>
+          <button class="code-tab" role="tab" aria-selected="false" data-code-mode="semaphore">Bounded queue</button>
+        </div>
+        <pre class="code-view" aria-label="Live Python source"><code id="code-lines">Loading booking.py…</code></pre>
+      </div>
+    </details>
+    <details class="panel concepts viva-faq" id="viva-faq">
+      <summary>Viva quick questions · concurrency and SQLite</summary>
+      <div class="concept-content">
+        <details><summary>Why use a per-seat lock instead of one global lock?</summary><p>A per-seat lock serializes only requests competing for the same berth. Different seats can be booked concurrently, avoiding a global bottleneck while preserving mutual exclusion for each seat.</p></details>
+        <details><summary>Why wait on a semaphore before acquiring the buffer mutex?</summary><p>A producer first waits for an empty slot, or a consumer waits for a full slot. If either waits while holding the mutex, the other side cannot enter the buffer to create the slot or item needed to wake it, causing deadlock.</p></details>
+        <details><summary>Why does SQLite still need application-level synchronization or a transaction?</summary><p>SQLite serializes database writes, but that alone does not make an earlier availability read atomic with a later write. A process-local Python lock coordinates threads in one server process; multi-process deployments also need a short transaction such as <code>BEGIN IMMEDIATE</code>, an atomic conditional update, and database constraints.</p></details>
+        <details><summary>What happens if the simulated I/O delay is removed?</summary><p>The vulnerable window becomes smaller, so the race may occur less often and become harder to reproduce. It does not become correct: timing is still nondeterministic. The demo uses a controlled delay and barrier to make the unsafe interleaving observable.</p></details>
+      </div>
+    </details>
+    </section>
+    <section class="tab-panel" id="panel-simulation" role="tabpanel" aria-labelledby="tab-simulation" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Interactive operating systems laboratory</span>
+        <h2>Process Synchronization Simulator</h2>
+        <p class="simulation-intro">See how multiple processes compete for a shared railway seat, and how synchronization keeps bookings safe. This isolated simulator changes only its own in-memory state; it never creates or cancels a real reservation.</p>
+        <div class="simulation-modes" role="group" aria-label="Choose a synchronization scenario">
+          <button class="simulation-mode unsafe" id="simulation-unsafe" type="button" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+            <span><strong>WITHOUT PROCESS SYNCHRONIZATION</strong><small>Watch multiple users access the same seat simultaneously, creating race conditions and double-booking conflicts.</small><span class="mode-cta">Start Simulation</span></span>
+          </button>
+          <button class="simulation-mode safe" id="simulation-mutex" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span><strong>WITH PROCESS SYNCHRONIZATION</strong><small>See how mutex locks control access, make other processes wait, and prevent conflicting bookings.</small><span class="mode-cta">Start Simulation</span></span>
+          </button>
+        </div>
+        <div class="simulation-controls">
+          <div class="field"><label for="simulation-users">Concurrent passengers</label><select id="simulation-users"><option>2</option><option>3</option><option>5</option><option>10</option><option>15</option></select></div>
+          <div class="field"><label for="simulation-seat">Target seat</label><select id="simulation-seat"><option value="A1-01">A1-01</option></select></div>
+          <div class="field"><label for="simulation-speed">Simulation speed</label><select id="simulation-speed"><option value="slow">Slow</option><option value="normal" selected>Normal</option><option value="fast">Fast</option></select></div>
+          <div class="field"><label for="simulation-execution-mode">Execution mode</label><select id="simulation-execution-mode"><option value="automatic">Automatic</option><option value="step-by-step">Step-by-Step</option></select></div>
+          <button class="btn btn-primary" id="simulation-start" type="button">Start</button>
+          <button class="btn" id="simulation-pause" type="button" disabled>Pause</button>
+          <button class="btn" id="simulation-resume" type="button" disabled>Resume</button>
+          <button class="btn" id="simulation-step" type="button" disabled>Next Step</button>
+          <button class="btn" id="simulation-reset" type="button">Reset</button>
+          <button class="btn" id="simulation-run-all" type="button" disabled>Run All</button>
+          <span id="simulation-status" role="status">Choose a scenario and configure the run.</span>
+        </div>
+        <div class="simulation-step-info" aria-live="polite">
+          <strong id="simulation-step-label">Step 0 of 0</strong>
+          <span id="simulation-step-explanation">Start a simulation to see each operation and explanation here.</span>
+        </div>
+        <div class="simulation-dashboard" id="simulation-dashboard" hidden>
+          <div class="simulation-grid">
+            <section class="panel">
+              <div class="panel-head"><div><h2>Passenger Processes</h2><p>Each process has an independent execution state</p></div><span class="availability" id="process-state-count">0 processes</span></div>
+              <div class="panel-body"><div class="simulation-process-list" id="simulation-processes" role="list" aria-live="polite"></div></div>
+            </section>
+            <div class="simulation-resource">
+              <section class="resource-card" aria-labelledby="seat-resource-title">
+                <h3 id="seat-resource-title">Shared Railway Seat</h3>
+                <div class="resource-seat" id="simulation-seat-visual">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-6a3 3 0 0 1 6 0v2h7a3 3 0 0 1 3 3v1H4Zm0 1v2m16-2v2M10 14v-2a3 3 0 0 1 6 0v2"/></svg>
+                  <strong id="simulation-seat-label">A1-01</strong>
+                  <span class="seat-status" id="simulation-seat-state">AVAILABLE</span>
+                  <div class="seat-meta"><span>Train Number</span><b>12002</b><span>Train Name</span><b>Bhopal Shatabdi Express</b><span>Coach</span><b>1A</b><span>Seat Number</span><b>A1-01</b></div>
+                  <div class="seat-passengers" id="simulation-passengers">Passenger: None</div>
+                  <div class="conflict-warning" id="simulation-conflict-warning" hidden>DOUBLE-BOOKING CONFLICT</div>
+                </div>
+              </section>
+              <section class="resource-card" id="simulation-lock-state" aria-labelledby="mutex-title">
+                <h3 id="mutex-title">Mutex Lock</h3>
+                <div class="mutex-panel">
+                  <svg class="mutex-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>
+                  <div><div>Mutex = <span class="mutex-value" id="simulation-mutex-value">1</span></div><span id="simulation-lock-caption">Unlocked · available for acquisition</span></div>
+                </div>
+                <div class="mutex-detail">
+                  <span>Current owner <strong id="simulation-lock-owner">None</strong></span>
+                  <span>Acquired at <strong id="simulation-lock-time">—</strong></span>
+                  <span>Critical section <strong id="simulation-critical">Not active</strong></span>
+                  <span>Last release <strong id="simulation-release">—</strong></span>
+                  <span>Waiting process queue</span>
+                  <div class="waiting-queue" id="simulation-waiting-queue">Empty</div>
+                </div>
+              </section>
+            </div>
+          </div>
+          <section class="panel terminal-panel">
+            <div class="panel-head"><div><h2>Live Execution Log</h2><p>Events are timestamped as each simulation operation runs</p></div><span class="availability low" id="simulation-mode-label">UNSAFE</span></div>
+            <div class="panel-body"><pre class="terminal simulation-log" id="simulation-log" role="log" aria-live="polite" aria-label="Timestamped process simulation events">Simulation events will be shown here.</pre></div>
+          </section>
+          <div class="simulation-results" aria-live="polite">
+            <div class="metric"><strong id="simulation-requests">0</strong><span>Total requests</span></div>
+            <div class="metric"><strong id="simulation-confirmed">0</strong><span>Successful booking operations</span></div>
+            <div class="metric"><strong id="simulation-rejected">0</strong><span>Rejected requests</span></div>
+            <div class="metric"><strong id="simulation-duplicates">0</strong><span>Duplicate booking attempts</span></div>
+            <div class="metric"><strong id="simulation-conflicts">0</strong><span>Conflicting bookings</span></div>
+            <div class="metric"><strong id="simulation-time">0 ms</strong><span>Simulation elapsed</span></div>
+          </div>
+          <section class="lesson-card">
+            <h3>Final Comparison Dashboard</h3>
+            <div class="comparison-wrap">
+              <table class="comparison comparison-table">
+                <thead><tr><th>Metric</th><th>Without Synchronization</th><th>With Synchronization</th></tr></thead>
+                <tbody>
+                  <tr><th>Total requests</th><td id="compare-total-unsafe">—</td><td id="compare-total-mutex">—</td></tr>
+                  <tr><th>Successful bookings</th><td id="compare-success-unsafe">—</td><td id="compare-success-mutex">—</td></tr>
+                  <tr><th>Rejected requests</th><td id="compare-rejected-unsafe">—</td><td id="compare-rejected-mutex">—</td></tr>
+                  <tr><th>Duplicate bookings</th><td id="compare-duplicates-unsafe">—</td><td id="compare-duplicates-mutex">—</td></tr>
+                  <tr><th>Mutex usage</th><td id="compare-lock-unsafe">—</td><td id="compare-lock-mutex">—</td></tr>
+                  <tr><th>Waiting queue</th><td id="compare-queue-unsafe">—</td><td id="compare-queue-mutex">—</td></tr>
+                  <tr><th>Data consistency</th><td id="compare-consistency-unsafe">—</td><td id="compare-consistency-mutex">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="conclusion-grid">
+              <section class="lesson-card unsafe"><h3>Without Synchronization</h3><p>Multiple processes access and modify shared booking information without coordination, resulting in race conditions and double-booking.</p></section>
+              <section class="lesson-card safe"><h3>With Synchronization</h3><p>Mutual exclusion protects the critical section, allowing only one booking operation at a time and maintaining consistency.</p></section>
+            </div>
+          </section>
+          <section class="lesson-card">
+            <h3>Observed conflict-rate comparison</h3>
+            <p>The bars summarize completed unsafe and synchronized runs on this page.</p>
+            <div class="conflict-chart" id="simulation-comparison" aria-live="polite"><span class="target-note">Complete both modes to compare their outcomes.</span></div>
+          </section>
+        </div>
+      </article>
+    </section>
+    <section class="tab-panel" id="panel-profile" role="tabpanel" aria-labelledby="tab-profile" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Your account</span>
+        <h2>Profile</h2>
+        <p>Your current demo session details.</p>
+        <div class="profile-card">
+          <div class="profile-mark" id="profile-initials" aria-hidden="true">G</div>
+          <div><strong id="profile-name">Guest</strong><p>Railway Control Room · Demo account</p></div>
+        </div>
+        <div class="booking-flow-actions">
+          <button class="btn" type="button" data-tab-target="panel-booking">Find trains</button>
+          <button class="btn btn-danger" id="profile-logout" type="button">Log out</button>
+        </div>
+      </article>
+    </section>
+    <section class="tab-panel" id="panel-contributors" role="tabpanel" aria-labelledby="tab-contributors" hidden>
+      <article class="panel lesson">
+        <span class="eyebrow">Project team</span>
+        <h2>Contributors</h2>
+        <p>Smart Railway Directory & Concurrent Ticket Booking System</p>
+        <div class="contributors-grid">
+          <section class="contributor-card"><h3>Anuja Sawhney</h3><p>Roll No. 2025uca1932</p></section>
+          <section class="contributor-card"><h3>Muskan Poddar</h3><p>Roll No. 2025uca1933</p></section>
+        </div>
+        <p><strong>Subject:</strong> Operating Systems — Process Synchronization Project</p>
+        <h3>Run the project</h3>
+        <p>From the repository folder, install the app requirements once, then start FastAPI. The SQLite database and demo records are initialized automatically on startup.</p>
+        <pre class="run-guide">cd project\railway-demo
+py -m pip install -r requirements.txt
+py -m uvicorn main:app --reload --port 8002</pre>
+      </article>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap footer-row">
+      <span>Smart Railway Directory & Concurrent Ticket Booking System</span>
+      <span>Operating Systems — Process Synchronization Project · Anuja Sawhney 2025uca1932 · Muskan Poddar 2025uca1933</span>
+    </div>
+  </footer>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API = "";
-    const DEMO_TRAIN_ID = 1;
-    const DEMO_TRAIN_NAME = "Express 101";
+    const request = async (url, options = {}) => {
+      const response = await fetch(url, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          if (typeof body.detail === "string") {
+            detail = body.detail;
+          } else if (Array.isArray(body.detail)) {
+            detail = body.detail.map((item) => {
+              const location = Array.isArray(item.loc) ? item.loc.join(".") : "";
+              return [location, item.msg].filter(Boolean).join(": ");
+            }).join("; ") || detail;
+          } else if (body.detail != null) {
+            detail = JSON.stringify(body.detail);
+          }
+        } catch { /* use the HTTP status when the server does not return JSON */ }
+        const method = (options.method || "GET").toUpperCase();
+        const startup = response.status === 404 && (detail === "Not Found" || detail === "HTTP 404")
+          ? " Start FastAPI from project\\railway-demo with: py -m uvicorn main:app --reload --port 8002."
+          : "";
+        throw new Error(`${method} ${url} failed: ${detail}.${startup}`);
+      }
+      return response.json();
+    };
 
-    // ---- shared helpers ----
-    async function api(path, options) {
-      const res = await fetch(API + path, options);
-      if (!res.ok) throw new Error("server returned HTTP " + res.status);
-      return res.json();
-    }
-
-    function setBusy(busy) {
-      document.querySelectorAll("button").forEach((b) => (b.disabled = busy));
-    }
-
-    // ---- live execution log (Panel C) ----
+    const state = {
+      trains: [],
+      train: null,
+      layout: null,
+      coachCode: null,
+      selectedSeat: null,
+      stressTargets: new Set(),
+      busy: false,
+    };
+    const comparisonHistory = { unsafe: [], synchronized: null };
+    let unsafeComparisonRun = 0;
+    const simulationOutcomes = { unsafe: null, mutex: null };
+    const simulationState = {
+      mode: "unsafe",
+      events: [],
+      index: 0,
+      timer: null,
+      playing: false,
+      paused: false,
+      runAll: false,
+      started: false,
+      finished: false,
+      processes: [],
+      seatStatus: "AVAILABLE",
+      passengers: [],
+      mutexValue: 1,
+      lockOwner: null,
+      lockAcquiredAt: null,
+      lastRelease: null,
+      criticalSection: false,
+      waitingQueue: [],
+      metrics: { requests: 0, confirmed: 0, rejected: 0, duplicates: 0, conflicts: 0 },
+      startedAt: null,
+      currentExplanation: "Start a simulation to see each operation and explanation here.",
+      executionMode: "automatic",
+    };
     let lastEventId = 0;
-    const terminal = document.getElementById("terminalLog");
+    let eventPollTimer = null;
+    let eventPollInFlight = false;
+    let lastPollError = "";
+    let dashboardInitialized = false;
 
-    async function pollLog() {
-      try {
-        const data = await api("/api/log?since=" + lastEventId);
-        if (!data.events || data.events.length === 0) return;
-        for (const e of data.events) {
-          terminal.textContent += "[" + e.time + "] " + e.message + "\n";
-          lastEventId = e.id;
-        }
-        terminal.scrollTop = terminal.scrollHeight;
-        refreshDemoSeats();
-      } catch (_) { /* transient; will retry next tick */ }
+    function updateClock() {
+      const now = new Date();
+      const hour = Number(new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        hourCycle: "h23",
+      }).format(now));
+      const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+      document.getElementById("greeting-label").textContent = greeting;
+      document.getElementById("current-datetime").textContent = `${new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "full",
+        timeStyle: "medium",
+      }).format(now)} IST`;
     }
 
-    // ---- seats display ----
-    async function refreshDemoSeats() {
-      const el = document.getElementById("demoSeats");
-      const statusEl = document.getElementById("demoSeatStatus");
-      try {
-        const data = await api("/api/seats?train_id=" + DEMO_TRAIN_ID);
-        if (data.error) { statusEl.textContent = data.error; return; }
-        const prev = el.textContent;
-        el.textContent = data.available_seats;
-        el.classList.toggle("full", data.available_seats <= 0);
-        statusEl.textContent = data.available_seats > 0
-          ? "Available for booking"
-          : "No seats left";
-        if (prev !== String(data.available_seats)) {
-          el.classList.add("bump");
-          setTimeout(() => el.classList.remove("bump"), 300);
-        }
-      } catch (_) { statusEl.textContent = "Cannot reach server"; }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    const trainList = document.getElementById("train-list");
+    const seatGrid = document.getElementById("seat-grid");
+    const coachTabs = document.getElementById("coach-tabs");
+    const stressStatus = document.getElementById("stress-status");
+
+    function setMessage(element, message, isError = false) {
+      element.textContent = message;
+      element.classList.toggle("error", isError);
+      element.classList.toggle("error-text", isError);
     }
 
-    // ---- Tab 1: trains list + normal booking ----
-    async function loadTrains() {
-      const container = document.getElementById("trainList");
-      try {
-        const data = await api("/api/trains");
-        container.innerHTML = "";
-        data.trains.forEach((t) => {
-          const col = document.createElement("div");
-          col.className = "col-md-6";
-          const full = t.available_seats <= 0;
-          col.innerHTML = `
-            <div class="card train-card h-100">
-              <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 class="card-title mb-1">${t.train_name}</h5>
-                  <p class="card-text text-muted mb-0 small">Train ID: ${t.train_id}</p>
-                </div>
-                <div class="text-end">
-                  <span class="badge ${full ? "bg-secondary" : "bg-success"} badge-seats mb-2 d-block">${t.available_seats} seat${t.available_seats === 1 ? "" : "s"}</span>
-                  <button class="btn btn-sm btn-primary book-btn" data-id="${t.train_id}" ${full ? "disabled" : ""}>
-                    <i class="bi bi-ticket-perforated"></i> Book Ticket
-                  </button>
-                </div>
-              </div>
-            </div>`;
-          container.appendChild(col);
+    function trainAvailability(train) {
+      return Number(train.available_seats);
+    }
+
+    function renderSummary() {
+      const totalSeats = state.trains.length * 4 * 12;
+      const available = state.trains.reduce((sum, train) => sum + trainAvailability(train), 0);
+      document.getElementById("stat-trains").textContent = state.trains.length;
+      document.getElementById("stat-coaches").textContent = state.trains.length * 4;
+      document.getElementById("stat-seats").textContent = totalSeats;
+      document.getElementById("stat-available").textContent = available;
+    }
+
+    function renderTrains() {
+      trainList.replaceChildren();
+      const search = document.getElementById("train-search").value.trim().toLowerCase();
+      const shown = state.trains.filter((train) =>
+        [train.train_no, train.name, train.source, train.destination]
+          .some((value) => String(value).toLowerCase().includes(search))
+      );
+      document.getElementById("train-count").textContent = `${shown.length} train${shown.length === 1 ? "" : "s"}`;
+      if (!shown.length) {
+        const empty = document.createElement("p");
+        empty.className = "subtitle";
+        empty.textContent = "No trains match this search.";
+        trainList.append(empty);
+        return;
+      }
+      shown.forEach((train) => {
+        const trainNo = Number(train.train_no);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `train-card${state.train?.train_no === trainNo ? " selected" : ""}`;
+        button.setAttribute("aria-pressed", String(state.train?.train_no === trainNo));
+        const top = document.createElement("div");
+        top.className = "train-top";
+        const title = document.createElement("span");
+        const number = document.createElement("span");
+        number.className = "train-no";
+        number.textContent = String(trainNo);
+        const name = document.createElement("span");
+        name.className = "train-name";
+        name.textContent = train.name;
+        title.append(number, name);
+        const available = document.createElement("span");
+        available.className = `availability${trainAvailability(train) < 20 ? " low" : ""}`;
+        available.textContent = `${trainAvailability(train)} free`;
+        top.append(title, available);
+        const route = document.createElement("span");
+        route.className = "route";
+        route.append(document.createTextNode(train.source));
+        const line = document.createElement("span");
+        line.className = "route-line";
+        route.append(line, document.createTextNode(train.destination));
+        const times = document.createElement("div");
+        times.className = "train-times";
+        times.textContent = `${train.departure}  Departure  ·  ${train.arrival}  Arrival`;
+        button.append(top, route, times);
+        button.addEventListener("click", () => loadTrain(trainNo));
+        trainList.append(button);
+      });
+    }
+
+    function renderRoute() {
+      const banner = document.getElementById("route-banner");
+      banner.replaceChildren();
+      if (!state.layout) return;
+      const { train } = state.layout;
+      const start = document.createElement("span");
+      start.className = "station";
+      start.innerHTML = `${escapeHTML(train.source)}<small>${escapeHTML(train.departure)} · Departure</small>`;
+      const arrow = document.createElement("span");
+      arrow.className = "route-arrow";
+      arrow.textContent = "────────→";
+      const end = document.createElement("span");
+      end.className = "station";
+      end.innerHTML = `${escapeHTML(train.destination)}<small>${escapeHTML(train.arrival)} · Arrival</small>`;
+      banner.append(start, arrow, end);
+      document.getElementById("layout-subtitle").textContent = `${train.train_no} · ${train.name}`;
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      })[char]);
+    }
+
+    function currentCoach() {
+      return state.layout?.coaches.find((coach) => coach.code === state.coachCode) || null;
+    }
+
+    function selectedSeatDetails() {
+      return state.layout?.coaches
+        .flatMap((coach) => coach.seats)
+        .find((seat) => seat.seat_id === state.selectedSeat);
+    }
+
+    const passengerInput = document.getElementById("passenger-name");
+    function syncPassengerValidity() {
+      passengerInput.setCustomValidity(
+        passengerInput.value.trim().length >= 2
+          ? ""
+          : "Enter at least two non-space characters for the passenger name.",
+      );
+      renderBookingSummary();
+    }
+
+    passengerInput.addEventListener("input", syncPassengerValidity);
+
+    function renderBookingSummary() {
+      const train = state.layout?.train;
+      const seat = selectedSeatDetails();
+      const passengerName = document.getElementById("passenger-name").value.trim();
+      document.getElementById("passenger-selection").textContent = train && seat
+        ? `${train.train_no} · ${train.name} · ${seat.label} · ${seat.berth_type}`
+        : "Choose a train and available berth before entering passenger details.";
+      document.getElementById("summary-train").textContent = train
+        ? `${train.train_no} · ${train.name}`
+        : "Select a train";
+      document.getElementById("summary-route").textContent = train
+        ? `${train.source} → ${train.destination} · ${train.departure}–${train.arrival}`
+        : "—";
+      document.getElementById("summary-seat").textContent = seat
+        ? `${seat.label} · ${seat.berth_type} · ${seat.status}`
+        : "Select an available berth";
+      document.getElementById("summary-passenger").textContent = passengerName || "Enter passenger details";
+    }
+
+    function updateSelectionControls() {
+      const selected = selectedSeatDetails();
+      const canBook = selected?.status === "available";
+      document.getElementById("book-button").disabled = !canBook;
+      document.getElementById("cancel-button").disabled = !selected || canBook;
+      document.getElementById("passenger-continue").disabled = !canBook;
+      document.getElementById("selection-note").textContent = selected
+        ? `Selected ${selected.label} · ${selected.berth_type} · ${selected.status}`
+        : "Select a berth to book or cancel.";
+      renderBookingSummary();
+    }
+
+    function renderLayout() {
+      if (!state.layout) return;
+      renderRoute();
+      coachTabs.replaceChildren();
+      state.layout.coaches.forEach((coach) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `coach-tab${coach.code === state.coachCode ? " active" : ""}`;
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", String(coach.code === state.coachCode));
+        const code = document.createElement("strong");
+        code.textContent = coach.code;
+        const label = document.createElement("small");
+        label.textContent = coach.class_name;
+        button.append(code, label);
+        button.addEventListener("click", () => {
+          state.coachCode = coach.code;
+          renderLayout();
         });
-        container.querySelectorAll(".book-btn").forEach((btn) =>
-          btn.addEventListener("click", () => bookNormal(parseInt(btn.dataset.id, 10), btn))
+        coachTabs.append(button);
+      });
+
+      seatGrid.replaceChildren();
+      const coach = currentCoach();
+      if (!coach) return;
+      coach.seats.forEach((seat) => {
+        const card = document.createElement("article");
+        card.className = `seat-card ${seat.status}${state.stressTargets.has(seat.seat_id) ? " target" : ""}${state.selectedSeat === seat.seat_id ? " selected" : ""}`;
+        card.dataset.seatId = seat.seat_id;
+        const select = document.createElement("button");
+        select.type = "button";
+        select.className = "seat-select";
+        select.setAttribute("aria-label", `${seat.label}, ${seat.berth_type}, ${seat.status}`);
+        const label = document.createElement("span");
+        label.className = "seat-label";
+        label.textContent = seat.label;
+        const type = document.createElement("span");
+        type.className = "seat-type";
+        type.textContent = seat.berth_type;
+        const status = document.createElement("span");
+        status.className = "seat-status";
+        status.textContent = seat.status === "conflict" ? "DOUBLE-BOOKED CONFLICT!"
+          : seat.status === "booked" ? "Booked" : "Available";
+        select.append(label, type, status);
+        select.addEventListener("click", () => {
+          state.selectedSeat = seat.seat_id;
+          updateSelectionControls();
+          renderLayout();
+          document.getElementById("booking-message").textContent = "";
+        });
+        card.append(select);
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "target-check";
+        checkbox.checked = state.stressTargets.has(seat.seat_id);
+        checkbox.setAttribute("aria-label", `Include ${seat.label} in concurrency test`);
+        checkbox.title = "Use as a concurrency test target";
+        checkbox.addEventListener("click", (event) => event.stopPropagation());
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked && state.stressTargets.size >= 5) {
+            checkbox.checked = false;
+            setMessage(stressStatus, "Choose at most five target berths.", true);
+            return;
+          }
+          if (checkbox.checked) state.stressTargets.add(seat.seat_id);
+          else state.stressTargets.delete(seat.seat_id);
+          card.classList.toggle("target", checkbox.checked);
+          stressStatus.textContent = `${state.stressTargets.size} stress target${state.stressTargets.size === 1 ? "" : "s"} selected.`;
+        });
+        card.append(checkbox);
+        seat.passengers.forEach((passenger) => {
+          const detail = document.createElement("span");
+          detail.className = "passenger";
+          detail.textContent = passenger;
+          card.append(detail);
+        });
+        seatGrid.append(card);
+      });
+      const availableCount = state.layout.coaches.reduce(
+        (sum, item) => sum + item.seats.filter((seat) => seat.status === "available").length, 0
+      );
+      document.getElementById("availability-badge").textContent = `${availableCount} available`;
+      updateSelectionControls();
+    }
+
+    async function loadTrain(trainNo, preserveTargets = false) {
+      const normalizedTrainNo = Number(trainNo);
+      if (!Number.isSafeInteger(normalizedTrainNo) || normalizedTrainNo <= 0) {
+        setMessage(
+          document.getElementById("booking-message"),
+          `Cannot load train layout: invalid train number "${String(trainNo)}". Refresh the train directory.`,
+          true,
         );
-      } catch (_) {
-        container.innerHTML = '<div class="text-danger">Could not load trains. Is the backend running?</div>';
+        return;
+      }
+      try {
+        const layout = await request(`/api/trains/${normalizedTrainNo}/layout`);
+        document.getElementById("booking-message").textContent = "";
+        if (state.train?.train_no !== normalizedTrainNo && !preserveTargets) {
+          state.stressTargets.clear();
+          state.selectedSeat = null;
+        }
+        state.train = layout.train;
+        state.layout = layout;
+        state.coachCode = state.coachCode && layout.coaches.some((coach) => coach.code === state.coachCode)
+          ? state.coachCode : layout.coaches[0]?.code;
+        renderTrains();
+        renderLayout();
+        if (!state.selectedSeat) {
+          const available = currentCoach()?.seats.find((seat) => seat.status === "available");
+          if (available) {
+            state.selectedSeat = available.seat_id;
+          }
+        }
+        updateSelectionControls();
+      } catch (error) {
+        setMessage(document.getElementById("booking-message"), error.message, true);
       }
     }
 
-    async function bookNormal(trainId, btn) {
-      const alertBox = document.getElementById("bookingAlert");
-      const original = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="bi bi-hourglass-split spin"></i> Booking...';
+    async function refreshTrains() {
+      const result = await request("/api/trains");
+      if (!Array.isArray(result.trains) || result.trains.some((train) => {
+        const trainNo = Number(train?.train_no);
+        return !Number.isSafeInteger(trainNo) || trainNo <= 0;
+      })) {
+        throw new Error("GET /api/trains returned an invalid train list (each train must have a positive train_no).");
+      }
+      state.trains = result.trains;
+      renderSummary();
+      renderTrains();
+      if (!state.train && state.trains.length) await loadTrain(state.trains[0].train_no);
+    }
+
+    document.getElementById("train-search").addEventListener("input", renderTrains);
+    document.getElementById("passenger-continue").addEventListener("click", () => {
+      navigateToTab("panel-passenger");
+    });
+    document.getElementById("passenger-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      syncPassengerValidity();
+      const selected = selectedSeatDetails();
+      if (!selected || selected.status !== "available") {
+        setMessage(document.getElementById("booking-message"), "Select an available berth before continuing.", true);
+        activateTab("panel-booking");
+        return;
+      }
+      renderBookingSummary();
+      activateTab("panel-summary");
+    });
+
+    document.getElementById("book-button").addEventListener("click", async (event) => {
+      const selected = selectedSeatDetails();
+      const passengerForm = document.getElementById("passenger-form");
+      syncPassengerValidity();
+      if (!selected || selected.status !== "available") {
+        setMessage(document.getElementById("booking-message"), "Select an available berth before confirming.", true);
+        activateTab("panel-booking");
+        return;
+      }
+      if (!passengerForm.checkValidity()) {
+        activateTab("panel-passenger");
+        passengerForm.reportValidity();
+        return;
+      }
+      const button = document.getElementById("book-button");
+      button.disabled = true;
+      document.getElementById("cancel-button").disabled = true;
       try {
-        const data = await api("/api/book_normal", {
+        const result = await request("/api/book", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user: "Passenger", train_id: trainId }),
+          body: JSON.stringify({
+            seat_id: selected.seat_id,
+            passenger: document.getElementById("passenger-name").value.trim(),
+          }),
         });
-        alertBox.className = "alert alert-demo mt-3 " + (data.success ? "alert-success" : "alert-warning");
-        alertBox.textContent = data.message;
-        alertBox.classList.remove("d-none");
-        await loadTrains();
-        refreshDemoSeats();
-      } catch (err) {
-        alertBox.className = "alert alert-demo mt-3 alert-danger";
-        alertBox.textContent = "Booking failed: " + err.message;
-        alertBox.classList.remove("d-none");
+        state.layout = result.layout;
+        renderLayout();
+        setMessage(document.getElementById("booking-message"), result.message);
+        await refreshTrains();
+      } catch (error) {
+        setMessage(document.getElementById("booking-message"), error.message, true);
+        updateSelectionControls();
+      }
+    });
+
+    document.getElementById("cancel-button").addEventListener("click", async (event) => {
+      if (!state.selectedSeat) return;
+      const button = event.currentTarget;
+      button.disabled = true;
+      document.getElementById("book-button").disabled = true;
+      try {
+        const result = await request("/api/cancel", {
+          method: "POST",
+          body: JSON.stringify({ seat_id: state.selectedSeat }),
+        });
+        state.layout = result.layout;
+        renderLayout();
+        setMessage(document.getElementById("booking-message"), result.message);
+        await refreshTrains();
+      } catch (error) {
+        setMessage(document.getElementById("booking-message"), error.message, true);
+        updateSelectionControls();
+      }
+    });
+
+    function selectedMode() {
+      return document.querySelector('input[name="sync-mode"]:checked').value;
+    }
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    async function playEvents(events) {
+      const output = document.getElementById("visualizer");
+      output.replaceChildren();
+      for (const item of events) {
+        const line = document.createElement("span");
+        line.className = `event ${item.kind}`;
+        line.textContent = `[${item.thread}] ${item.message}`;
+        output.append(line);
+        output.scrollTop = output.scrollHeight;
+        await sleep(45);
+      }
+    }
+
+    document.getElementById("run-simulation").addEventListener("click", async (event) => {
+      if (!state.train) return;
+      const button = event.currentTarget;
+      const users = Number(document.getElementById("user-count").value);
+      if (!Number.isInteger(users) || users < 2 || users > 30) {
+        setMessage(stressStatus, "Concurrent passengers must be between 2 and 30.", true);
+        return;
+      }
+      const selectedCoach = currentCoach();
+      let seatIds = [...state.stressTargets];
+      if (!seatIds.length && state.selectedSeat) seatIds = [state.selectedSeat];
+      if (!seatIds.length) {
+        const available = selectedCoach?.seats.find((seat) => seat.status === "available");
+        if (available) seatIds = [available.seat_id];
+      }
+      if (!seatIds.length) {
+        setMessage(stressStatus, "Select an available berth or reset the demo data first.", true);
+        return;
+      }
+      button.disabled = true;
+      document.getElementById("reset-demo").disabled = true;
+      stressStatus.textContent = `Launching ${users} threads in ${selectedMode()} mode…`;
+      document.querySelectorAll(".seat-card").forEach((card) => {
+        if (seatIds.includes(Number(card.dataset.seatId))) card.classList.add("running");
+      });
+      try {
+        const result = await request("/api/simulate", {
+          method: "POST",
+          body: JSON.stringify({
+            train_no: state.train.train_no,
+            seat_ids: seatIds,
+            users,
+            mode: selectedMode(),
+          }),
+        });
+        await playEvents(result.events);
+        document.getElementById("metric-requests").textContent = result.total_requests;
+        document.getElementById("metric-confirmed").textContent = result.confirmed;
+        document.getElementById("metric-rejected").textContent = result.rejected;
+        document.getElementById("metric-conflicts").textContent = result.conflicts;
+        document.getElementById("metric-time").textContent = `${result.execution_time_ms} ms`;
+        recordSimulationComparison(result, seatIds.length);
+        stressStatus.textContent = result.mode === "semaphore"
+          ? `Complete · queue max ${result.queue_max_size}/${result.queue_capacity} · FIFO requests processed.`
+          : result.conflicts
+            ? `Race detected · ${result.conflicts} target berth(s) have multiple confirmed booking rows.`
+            : `Complete · ${result.confirmed} confirmed · ${result.rejected} rejected · no double-booking conflicts.`;
+        state.layout = result.layout;
+        renderLayout();
+        await refreshTrains();
+      } catch (error) {
+        setMessage(stressStatus, error.message, true);
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = original;
-      }
-    }
-
-    // ---- Tab 2: mock login ----
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const alertBox = document.getElementById("loginAlert");
-      const username = document.getElementById("loginUsername").value.trim();
-      const password = document.getElementById("loginPassword").value;
-      if (!username || !password) return;
-      try {
-        const data = await api("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        const p = data.profile;
-        document.getElementById("profileCard").classList.remove("d-none");
-        document.getElementById("profilePlaceholder").classList.add("d-none");
-        document.getElementById("profileName").textContent = p.name;
-        document.getElementById("profileEmail").textContent = p.email;
-        document.getElementById("profileAge").textContent = p.age;
-        document.getElementById("profileAvatar").textContent = p.name.charAt(0).toUpperCase();
-        const list = document.getElementById("profileBookings");
-        list.innerHTML = "";
-        p.past_bookings.forEach((b) => {
-          const li = document.createElement("li");
-          li.className = "list-group-item d-flex justify-content-between align-items-center";
-          li.innerHTML = `<span><i class="bi bi-train-front"></i> ${b.train}</span>
-            <span><small class="text-muted me-2">${b.date}</small><span class="badge bg-success">${b.status}</span></span>`;
-          list.appendChild(li);
-        });
-        alertBox.className = "alert alert-demo mt-3 alert-success";
-        alertBox.textContent = "Login successful (mock).";
-        alertBox.classList.remove("d-none");
-      } catch (err) {
-        alertBox.className = "alert alert-demo mt-3 alert-danger";
-        alertBox.textContent = "Login failed: " + err.message;
-        alertBox.classList.remove("d-none");
+        button.disabled = false;
+        document.getElementById("reset-demo").disabled = false;
+        document.querySelectorAll(".seat-card.running").forEach((card) => card.classList.remove("running"));
       }
     });
 
-    // ---- Tab 3: demo buttons ----
-    async function bookAs(endpoint, user) {
+    document.getElementById("reset-demo").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      document.getElementById("run-simulation").disabled = true;
       try {
-        return await api(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user, train_id: DEMO_TRAIN_ID }),
-        });
-      } catch (err) {
-        return { success: false, user, error: err.message };
+        const result = await request("/api/reset", { method: "POST" });
+        state.trains = result.trains;
+        state.selectedSeat = null;
+        state.stressTargets.clear();
+        renderSummary();
+        renderTrains();
+        if (state.train) await loadTrain(state.train.train_no);
+        document.getElementById("metric-requests").textContent = "0";
+        document.getElementById("metric-confirmed").textContent = "0";
+        document.getElementById("metric-rejected").textContent = "0";
+        document.getElementById("metric-conflicts").textContent = "0";
+        document.getElementById("metric-time").textContent = "0 ms";
+        document.getElementById("visualizer").textContent = "Demo bookings restored. Ready for a fresh simulation.";
+        stressStatus.textContent = result.message;
+      } catch (error) {
+        setMessage(stressStatus, error.message, true);
+      } finally {
+        button.disabled = false;
+        document.getElementById("run-simulation").disabled = false;
       }
+    });
+
+    const simulationLog = document.getElementById("simulation-log");
+    const simulationProcesses = document.getElementById("simulation-processes");
+
+    function setSimulationStatus(message, isError = false) {
+      const status = document.getElementById("simulation-status");
+      status.textContent = message;
+      status.classList.toggle("error", isError);
     }
 
-    async function runDemo(endpoint) {
-      const resultEl = document.getElementById("demoResult");
-      resultEl.className = "result-box small text-muted";
-      resultEl.textContent = "Two requests are in flight...";
-      setBusy(true);
-
-      // Two requests start in the same tick so they overlap on the server.
-      const [r1, r2] = await Promise.all([
-        bookAs(endpoint, "User 1"),
-        bookAs(endpoint, "User 2"),
-      ]);
-      const winners = [r1, r2].filter((r) => r.success).length;
-      const failed = [r1, r2].find((r) => r.error);
-
-      if (failed) {
-        resultEl.className = "result-box small alert alert-danger alert-demo p-2 mt-2";
-        resultEl.textContent = "A request failed: " + failed.error;
-      } else if (winners === 2) {
-        resultEl.className = "result-box small alert alert-danger alert-demo p-2 mt-2";
-        resultEl.textContent = "DOUBLE-BOOKING: both users were told they got the only seat!";
-      } else if (winners === 1) {
-        resultEl.className = "result-box small alert alert-success alert-demo p-2 mt-2";
-        resultEl.textContent = "Correct: one user booked, the other was rejected. No double-booking.";
+    function recordSimulationComparison(result, targetCount) {
+      const run = {
+        conflicts: Number(result.conflicts),
+        targets: Math.max(1, Number(targetCount)),
+        mode: result.mode,
+      };
+      if (result.mode === "unsafe") {
+        unsafeComparisonRun += 1;
+        comparisonHistory.unsafe.push({ ...run, run: unsafeComparisonRun });
+        comparisonHistory.unsafe = comparisonHistory.unsafe.slice(-3);
       } else {
-        resultEl.className = "result-box small alert alert-warning alert-demo p-2 mt-2";
-        resultEl.textContent = "Nobody got a seat. Press Reset Seats to 1 to run the demo again.";
+        comparisonHistory.synchronized = run;
       }
-
-      setBusy(false);
-      refreshDemoSeats();
-      loadTrains();
+      renderSimulationComparison();
     }
 
-    document.getElementById("btnRace").addEventListener("click", () => runDemo("/api/demo_book_without_sync"));
-    document.getElementById("btnSync").addEventListener("click", () => runDemo("/api/demo_book_with_sync"));
+    function renderSimulationComparison() {
+      const chart = document.getElementById("simulation-comparison");
+      const rows = [
+        ...comparisonHistory.unsafe.map((run, index) => ({
+          ...run,
+          label: `Unsafe run ${index + 1}`,
+          safe: false,
+        })),
+      ];
+      if (comparisonHistory.synchronized) {
+        rows.push({
+          ...comparisonHistory.synchronized,
+          label: comparisonHistory.synchronized.mode === "semaphore" ? "Semaphore queue" : "Mutex run",
+          safe: true,
+        });
+      }
+      chart.replaceChildren();
+      if (!rows.length) {
+        const note = document.createElement("span");
+        note.className = "target-note";
+        note.textContent = "Run unsafe and mutex tests to build a live comparison.";
+        chart.append(note);
+        return;
+      }
+      rows.forEach((run) => {
+        const percentage = Math.min(100, Math.round((run.conflicts / run.targets) * 100));
+        const row = document.createElement("div");
+        row.className = "conflict-row";
+        const label = document.createElement("strong");
+        label.textContent = run.label;
+        const track = document.createElement("div");
+        track.className = "conflict-track";
+        track.setAttribute("role", "img");
+        track.setAttribute("aria-label", `${run.label}: ${run.conflicts} conflicts among ${run.targets} berths`);
+        const fill = document.createElement("span");
+        fill.className = `conflict-fill${run.safe ? " safe" : ""}`;
+        fill.style.width = `${percentage}%`;
+        track.append(fill);
+        const value = document.createElement("span");
+        value.className = "conflict-value";
+        value.textContent = `${run.conflicts}/${run.targets} · ${percentage}%`;
+        row.append(label, track, value);
+        chart.append(row);
+      });
+    }
 
-    document.getElementById("btnReset").addEventListener("click", async () => {
-      setBusy(true);
-      try {
-        await api("/api/reset", { method: "POST" });
-        terminal.textContent = "";
-        document.getElementById("demoResult").className = "result-box small text-muted";
-        document.getElementById("demoResult").textContent = "Database reset. One seat is available again.";
-      } catch (_) { /* ignore */ }
-      setBusy(false);
-      refreshDemoSeats();
-      loadTrains();
+    function createSimulationProcesses(count) {
+      return Array.from({ length: count }, (_, index) => ({
+        id: `P${index + 1}`,
+        passenger: `User ${String.fromCharCode(65 + index)}`,
+        state: "READY",
+        lastAction: "Ready to request seat A1-01",
+        observedStatus: null,
+        checkPassed: false,
+      }));
+    }
+
+    function simulationTimestamp() {
+      return new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(new Date());
+    }
+
+    function buildSimulationPlan(mode, count) {
+      const operations = [];
+      const add = (type, index, explanation) => operations.push({ type, index, explanation });
+      for (let index = 0; index < count; index += 1) {
+        add("request", index, `${simulationState.processes[index].id} submits a booking request for A1-01.`);
+      }
+      if (mode === "unsafe") {
+        for (let index = 0; index < count; index += 1) {
+          add("read", index, `${simulationState.processes[index].id} reads the shared seat status.`);
+        }
+        for (let index = 0; index < count; index += 1) {
+          add("check", index, `${simulationState.processes[index].id} checks its observed status before writing.`);
+        }
+        for (let index = 0; index < count; index += 1) {
+          add("unsafe-commit", index, `${simulationState.processes[index].id} attempts to commit using its earlier check.`);
+        }
+      } else {
+        add("acquire", 0, "P1 executes wait(mutex): the lock is free, so it enters.");
+        for (let index = 1; index < count; index += 1) {
+          add("queue", index, `${simulationState.processes[index].id} waits because P1 owns the mutex.`);
+        }
+        for (let index = 1; index < count; index += 1) {
+          add("block", index, `${simulationState.processes[index].id} is blocked in the FIFO waiting queue.`);
+        }
+        for (let index = 0; index < count; index += 1) {
+          if (index > 0) add("acquire", index, `${simulationState.processes[index].id} is next in the fair queue and acquires the mutex.`);
+          add("enter", index, `${simulationState.processes[index].id} enters the protected critical section.`);
+          add("mutex-check", index, `${simulationState.processes[index].id} reads the current seat status while holding the mutex.`);
+          add(index === 0 ? "mutex-book" : "mutex-reject", index,
+            index === 0
+              ? "P1 commits the booking while it owns the mutex."
+              : `${simulationState.processes[index].id} sees the seat is booked and is rejected.`);
+          add("release", index, `${simulationState.processes[index].id} executes signal(mutex) and releases the lock.`);
+        }
+      }
+      add("finish", -1, "The run is complete. Review the final seat state and comparison.");
+      return operations;
+    }
+
+    function updateSimulationControls() {
+      const active = simulationState.started && !simulationState.finished;
+      document.getElementById("simulation-start").disabled = active;
+      document.getElementById("simulation-pause").disabled = !simulationState.playing;
+      document.getElementById("simulation-resume").disabled = !simulationState.paused || simulationState.finished;
+      document.getElementById("simulation-step").disabled = !simulationState.started || simulationState.finished;
+      document.getElementById("simulation-run-all").disabled = !simulationState.started || simulationState.finished;
+      ["simulation-users", "simulation-seat", "simulation-execution-mode"].forEach((id) => {
+        document.getElementById(id).disabled = active;
+      });
+      document.getElementById("simulation-speed").disabled = false;
+    }
+
+    function renderSimulationState() {
+      const cards = simulationState.processes.map((process) => {
+        const card = document.createElement("article");
+        card.className = `simulation-process-card state-${process.state.toLowerCase()}`;
+        card.setAttribute("role", "listitem");
+        const top = document.createElement("div");
+        top.className = "process-card-top";
+        const processName = document.createElement("strong");
+        processName.textContent = process.id;
+        const state = document.createElement("span");
+        state.className = "process-state";
+        state.textContent = process.state;
+        top.append(processName, state);
+        const passenger = document.createElement("div");
+        passenger.className = "process-card-passenger";
+        passenger.textContent = process.passenger;
+        const detail = document.createElement("div");
+        detail.className = "process-card-detail";
+        detail.textContent = process.lastAction;
+        card.append(top, passenger, detail);
+        return card;
+      });
+      simulationProcesses.replaceChildren(...cards);
+      const finished = simulationState.processes.filter((process) =>
+        process.state === "COMPLETED" || process.state === "REJECTED"
+      ).length;
+      document.getElementById("process-state-count").textContent =
+        `${simulationState.processes.length} processes · ${finished} complete`;
+
+      const seat = document.getElementById("simulation-seat-visual");
+      const seatStatus = document.getElementById("simulation-seat-state");
+      seat.classList.toggle("conflict", simulationState.seatStatus === "CONFLICT");
+      seat.classList.toggle("booked", simulationState.seatStatus === "BOOKED");
+      seat.classList.toggle("running", simulationState.criticalSection);
+      seatStatus.textContent = simulationState.seatStatus === "CONFLICT"
+        ? "DOUBLE-BOOKED CONFLICT"
+        : simulationState.seatStatus;
+      const passengerList = document.getElementById("simulation-passengers");
+      if (!simulationState.passengers.length) {
+        passengerList.textContent = "Passenger: None";
+      } else {
+        passengerList.replaceChildren(...simulationState.passengers.map((name) => {
+          const chip = document.createElement("span");
+          chip.className = "passenger-chip";
+          chip.textContent = name;
+          return chip;
+        }));
+      }
+      document.getElementById("simulation-conflict-warning").hidden =
+        simulationState.seatStatus !== "CONFLICT";
+
+      const lockPanel = document.getElementById("simulation-lock-state");
+      const locked = simulationState.mode === "mutex" && simulationState.mutexValue === 0;
+      lockPanel.classList.toggle("locked", locked);
+      document.getElementById("simulation-mutex-value").textContent = String(simulationState.mutexValue);
+      document.getElementById("simulation-lock-caption").textContent = simulationState.mode === "unsafe"
+        ? "Mutex is not used in this execution"
+        : locked ? "Locked · other processes must wait" : "Unlocked · available for acquisition";
+      document.getElementById("simulation-lock-owner").textContent =
+        simulationState.lockOwner || "None";
+      document.getElementById("simulation-lock-time").textContent =
+        simulationState.lockAcquiredAt || "—";
+      document.getElementById("simulation-critical").textContent =
+        simulationState.criticalSection ? "Active" : "Not active";
+      document.getElementById("simulation-release").textContent =
+        simulationState.lastRelease || "—";
+      const queue = document.getElementById("simulation-waiting-queue");
+      if (!simulationState.waitingQueue.length) {
+        queue.textContent = "Empty";
+      } else {
+        queue.replaceChildren(...simulationState.waitingQueue.map((processId) => {
+          const token = document.createElement("span");
+          token.className = "queue-token";
+          token.textContent = processId;
+          return token;
+        }));
+      }
+      document.getElementById("simulation-mode-label").textContent =
+        simulationState.mode === "unsafe" ? "UNSAFE · NO LOCK" : "MUTEX · FIFO";
+      document.getElementById("simulation-requests").textContent = simulationState.metrics.requests;
+      document.getElementById("simulation-confirmed").textContent = simulationState.metrics.confirmed;
+      document.getElementById("simulation-rejected").textContent = simulationState.metrics.rejected;
+      document.getElementById("simulation-duplicates").textContent = simulationState.metrics.duplicates;
+      document.getElementById("simulation-conflicts").textContent = simulationState.metrics.conflicts;
+      const elapsed = simulationState.startedAt
+        ? Math.max(0, Date.now() - simulationState.startedAt)
+        : 0;
+      document.getElementById("simulation-time").textContent = `${elapsed} ms`;
+      document.getElementById("simulation-step-label").textContent =
+        `Step ${simulationState.index} of ${simulationState.events.length}`;
+      document.getElementById("simulation-step-explanation").textContent =
+        simulationState.currentExplanation;
+    }
+
+    function renderFinalComparison() {
+      ["unsafe", "mutex"].forEach((mode) => {
+        const result = simulationOutcomes[mode];
+        const suffix = mode === "unsafe" ? "unsafe" : "mutex";
+        const set = (field, value, className = "") => {
+          const cell = document.getElementById(`compare-${field}-${suffix}`);
+          cell.textContent = value;
+          cell.className = className;
+        };
+        if (!result) {
+          ["total", "success", "rejected", "duplicates", "lock", "queue", "consistency"]
+            .forEach((field) => set(field, "—"));
+          return;
+        }
+        set("total", String(result.total));
+        set("success", String(result.success));
+        set("rejected", String(result.rejected));
+        set("duplicates", String(result.duplicates));
+        set("lock", result.mutex ? "Yes" : "No");
+        set("queue", result.mutex ? "Yes · FIFO" : "No controlled queue");
+        set("consistency", result.consistency, result.consistency === "MAINTAINED"
+          ? "consistency-good" : "consistency-bad");
+      });
+    }
+
+    function appendSimulationEvent(processId, message, kind = "info") {
+      const line = document.createElement("span");
+      line.className = `terminal-line ${kind}`;
+      line.textContent = `[${simulationTimestamp()}] [${processId}] ${message}`;
+      simulationLog.append(line);
+      simulationLog.scrollTop = simulationLog.scrollHeight;
+    }
+
+    function finalizeProcessSimulation() {
+      simulationState.finished = true;
+      simulationState.playing = false;
+      simulationState.paused = false;
+      simulationState.timer = null;
+      simulationState.criticalSection = false;
+      const consistency = simulationState.passengers.length > 1 ? "VIOLATED" : "MAINTAINED";
+      const outcome = {
+        total: simulationState.metrics.requests,
+        success: simulationState.metrics.confirmed,
+        rejected: simulationState.metrics.rejected,
+        duplicates: simulationState.metrics.duplicates,
+        conflicts: simulationState.metrics.conflicts,
+        mutex: simulationState.mode === "mutex",
+        consistency,
+      };
+      simulationOutcomes[simulationState.mode] = outcome;
+      renderFinalComparison();
+      recordSimulationComparison({
+        mode: simulationState.mode,
+        conflicts: outcome.conflicts,
+      }, 1);
+      renderSimulationState();
+      updateSimulationControls();
+      setSimulationStatus(simulationState.mode === "unsafe"
+        ? `Complete: ${outcome.success} booking operations succeeded; ${outcome.duplicates} duplicate attempts. Consistency ${consistency} in this isolated simulation.`
+        : `Complete: 1 booking confirmed, ${outcome.rejected} requests rejected, zero conflicts. Consistency MAINTAINED.`);
+    }
+
+    function applySimulationOperation(operation) {
+      const process = simulationState.processes[operation.index];
+      let processId = process?.id || "SYSTEM";
+      let message = "";
+      let kind = "info";
+      simulationState.currentExplanation = operation.explanation;
+      switch (operation.type) {
+        case "request":
+          process.state = "RUNNING";
+          process.lastAction = "Submitting booking request";
+          simulationState.metrics.requests += 1;
+          message = `${process.id} (${process.passenger}) requested seat A1-01.`;
+          break;
+        case "read":
+          process.state = "RUNNING";
+          process.observedStatus = simulationState.seatStatus;
+          process.lastAction = `Read seat A1-01 = ${process.observedStatus}`;
+          simulationState.criticalSection = true;
+          message = `${process.id} read seat A1-01 = ${process.observedStatus}.`;
+          kind = "read";
+          break;
+        case "check":
+          process.state = "RUNNING";
+          process.checkPassed = process.observedStatus === "AVAILABLE";
+          process.lastAction = process.checkPassed
+            ? "Check passed using the earlier AVAILABLE read"
+            : "Check found the seat already booked";
+          message = process.checkPassed
+            ? `${process.id} concluded the seat was AVAILABLE (stale check).`
+            : `${process.id} concluded the seat was BOOKED.`;
+          break;
+        case "unsafe-commit":
+          if (process.checkPassed) {
+            if (simulationState.passengers.length) {
+              simulationState.metrics.duplicates += 1;
+              simulationState.metrics.conflicts += 1;
+              kind = "conflict";
+              message = `DOUBLE-BOOKING: ${process.passenger} committed using a stale availability check.`;
+            } else {
+              kind = "booked";
+              message = `${process.passenger} committed a booking without a lock.`;
+            }
+            simulationState.passengers.push(process.passenger);
+            simulationState.metrics.confirmed += 1;
+            simulationState.seatStatus = simulationState.passengers.length > 1
+              ? "CONFLICT" : "BOOKED";
+            process.state = "COMPLETED";
+            process.lastAction = simulationState.seatStatus === "CONFLICT"
+              ? "Booking committed · duplicate seat record"
+              : "Booking committed";
+          } else {
+            simulationState.metrics.rejected += 1;
+            process.state = "REJECTED";
+            process.lastAction = "Booking rejected";
+            message = `${process.passenger} was rejected because the seat was occupied.`;
+            kind = "rejected";
+          }
+          simulationState.criticalSection = false;
+          break;
+        case "acquire":
+          simulationState.mutexValue = 0;
+          simulationState.lockOwner = process.id;
+          simulationState.lockAcquiredAt = simulationTimestamp();
+          process.state = "RUNNING";
+          process.lastAction = "Acquired mutex · mutex = 0";
+          if (operation.index > 0) simulationState.waitingQueue.shift();
+          message = `${process.id} acquired mutex. Mutex = 0.`;
+          kind = "entered";
+          break;
+        case "queue":
+          process.state = "WAITING";
+          process.lastAction = "Waiting in the FIFO queue for mutex";
+          simulationState.waitingQueue.push(process.id);
+          message = `${process.id} moved to the waiting queue; P1 owns the mutex.`;
+          kind = "waiting";
+          break;
+        case "block":
+          process.state = "BLOCKED";
+          process.lastAction = "Blocked until the mutex is released";
+          message = `${process.id} is BLOCKED until the mutex becomes available.`;
+          kind = "waiting";
+          break;
+        case "enter":
+          process.state = "RUNNING";
+          process.lastAction = "Inside the protected critical section";
+          simulationState.criticalSection = true;
+          message = `${process.id} entered the critical section.`;
+          kind = "entered";
+          break;
+        case "mutex-check":
+          process.state = "RUNNING";
+          process.observedStatus = simulationState.seatStatus;
+          process.checkPassed = process.observedStatus === "AVAILABLE";
+          process.lastAction = `Checked seat status = ${process.observedStatus}`;
+          message = `${process.id} checked seat A1-01 = ${process.observedStatus}.`;
+          kind = "read";
+          break;
+        case "mutex-book":
+          simulationState.passengers.push(process.passenger);
+          simulationState.seatStatus = "BOOKED";
+          simulationState.metrics.confirmed += 1;
+          process.state = "COMPLETED";
+          process.lastAction = "Booking confirmed · seat is BOOKED";
+          message = `${process.passenger} booked seat A1-01 successfully.`;
+          kind = "booked";
+          break;
+        case "mutex-reject":
+          simulationState.metrics.rejected += 1;
+          process.state = "REJECTED";
+          process.lastAction = "Rejected · seat is already BOOKED";
+          message = `Booking rejected for ${process.passenger}; seat is already occupied.`;
+          kind = "rejected";
+          break;
+        case "release":
+          simulationState.criticalSection = false;
+          simulationState.mutexValue = 1;
+          simulationState.lockOwner = null;
+          simulationState.lastRelease = simulationTimestamp();
+          process.lastAction = `${process.lastAction} · mutex released`;
+          message = `${process.id} released mutex. Mutex = 1.`;
+          break;
+        case "finish":
+          if (simulationState.mode === "unsafe" && simulationState.passengers.length > 1) {
+            simulationState.seatStatus = "CONFLICT";
+          }
+          simulationState.criticalSection = false;
+          message = simulationState.seatStatus === "CONFLICT"
+            ? `Final state: ${simulationState.metrics.conflicts} duplicate booking(s); consistency VIOLATED.`
+            : `Final state: one booking, no conflicts; consistency MAINTAINED.`;
+          kind = simulationState.seatStatus === "CONFLICT" ? "conflict" : "booked";
+          break;
+        default:
+          throw new Error(`Unknown simulation operation: ${operation.type}`);
+      }
+      appendSimulationEvent(processId, message, kind);
+      simulationState.currentExplanation = `${operation.explanation} ${message}`;
+      simulationState.index += 1;
+      renderSimulationState();
+      if (operation.type === "finish") finalizeProcessSimulation();
+      else updateSimulationControls();
+    }
+
+    function advanceSimulationStep() {
+      if (!simulationState.started || simulationState.finished) return false;
+      const operation = simulationState.events[simulationState.index];
+      if (!operation) return false;
+      applySimulationOperation(operation);
+      return true;
+    }
+
+    function runAutomaticSimulation() {
+      if (simulationState.timer) clearTimeout(simulationState.timer);
+      simulationState.playing = true;
+      simulationState.paused = false;
+      updateSimulationControls();
+      const tick = () => {
+        if (!simulationState.playing || simulationState.finished) return;
+        advanceSimulationStep();
+        if (simulationState.playing && !simulationState.finished) {
+          const delay = { slow: 1200, normal: 650, fast: 260 }[
+            document.getElementById("simulation-speed").value
+          ] || 650;
+          simulationState.timer = setTimeout(tick, delay);
+        }
+      };
+      tick();
+    }
+
+    function startProcessSimulation(mode = simulationState.mode) {
+      const userCount = Number(document.getElementById("simulation-users").value);
+      if (![2, 3, 5, 10, 15].includes(userCount)) {
+        setSimulationStatus("Choose 2, 3, 5, 10, or 15 concurrent passengers.", true);
+        return;
+      }
+      simulationState.mode = mode;
+      simulationState.executionMode = document.getElementById("simulation-execution-mode").value;
+      document.getElementById("simulation-unsafe").setAttribute("aria-pressed", String(mode === "unsafe"));
+      document.getElementById("simulation-mutex").setAttribute("aria-pressed", String(mode === "mutex"));
+      resetSimulationDisplay();
+      simulationState.processes = createSimulationProcesses(userCount);
+      simulationState.events = buildSimulationPlan(mode, userCount);
+      simulationState.started = true;
+      simulationState.startedAt = Date.now();
+      simulationState.currentExplanation = simulationState.executionMode === "step-by-step"
+        ? "Ready. Click Next Step to execute exactly one operation."
+        : "Automatic execution started.";
+      simulationLog.replaceChildren();
+      document.getElementById("simulation-mode-label").textContent =
+        mode === "unsafe" ? "UNSAFE · NO LOCK" : "MUTEX · FIFO";
+      renderSimulationState();
+      updateSimulationControls();
+      setSimulationStatus(simulationState.executionMode === "automatic"
+        ? `${userCount} passenger processes started in automatic mode.`
+        : `${userCount} passenger processes ready. Use Next Step for one operation at a time.`);
+      if (simulationState.executionMode === "automatic") runAutomaticSimulation();
+    }
+
+    function resetSimulationDisplay() {
+      if (simulationState.timer) clearTimeout(simulationState.timer);
+      simulationState.timer = null;
+      simulationState.playing = false;
+      simulationState.paused = false;
+      simulationState.runAll = false;
+      simulationState.started = false;
+      simulationState.finished = false;
+      simulationState.events = [];
+      simulationState.index = 0;
+      simulationState.processes = createSimulationProcesses(Number(document.getElementById("simulation-users").value));
+      simulationState.seatStatus = "AVAILABLE";
+      simulationState.passengers = [];
+      simulationState.mutexValue = 1;
+      simulationState.lockOwner = null;
+      simulationState.lockAcquiredAt = null;
+      simulationState.lastRelease = null;
+      simulationState.criticalSection = false;
+      simulationState.waitingQueue = [];
+      simulationState.metrics = { requests: 0, confirmed: 0, rejected: 0, duplicates: 0, conflicts: 0 };
+      simulationState.startedAt = null;
+      simulationState.currentExplanation = "Simulation reset. All processes are READY and the seat is AVAILABLE.";
+      document.getElementById("simulation-log").textContent = "Simulation events will be shown here.";
+      document.getElementById("simulation-dashboard").hidden = false;
+      document.getElementById("simulation-time").textContent = "0 ms";
+      renderSimulationState();
+      updateSimulationControls();
+      setSimulationStatus("Reset complete. Select Start Simulation to begin again.");
+    }
+
+    document.getElementById("simulation-unsafe").addEventListener("click", () => {
+      startProcessSimulation("unsafe");
+    });
+    document.getElementById("simulation-mutex").addEventListener("click", () => {
+      startProcessSimulation("mutex");
+    });
+    document.getElementById("simulation-start").addEventListener("click", () => {
+      startProcessSimulation(simulationState.mode);
+    });
+    document.getElementById("simulation-pause").addEventListener("click", () => {
+      if (simulationState.timer) clearTimeout(simulationState.timer);
+      simulationState.timer = null;
+      simulationState.playing = false;
+      simulationState.paused = true;
+      updateSimulationControls();
+      setSimulationStatus("Simulation paused. Resume or advance one operation with Next Step.");
+    });
+    document.getElementById("simulation-resume").addEventListener("click", () => {
+      if (!simulationState.paused || simulationState.finished) return;
+      setSimulationStatus("Simulation resumed.");
+      runAutomaticSimulation();
+    });
+    document.getElementById("simulation-step").addEventListener("click", () => {
+      if (!simulationState.started || simulationState.finished) return;
+      if (simulationState.timer) clearTimeout(simulationState.timer);
+      simulationState.timer = null;
+      simulationState.playing = false;
+      const keepPaused = simulationState.executionMode === "automatic";
+      simulationState.paused = keepPaused;
+      advanceSimulationStep();
+      if (!simulationState.finished) {
+        simulationState.currentExplanation = `Step ${simulationState.index} of ${simulationState.events.length}: ${simulationState.currentExplanation}`;
+        renderSimulationState();
+        updateSimulationControls();
+        setSimulationStatus(`Step ${simulationState.index} of ${simulationState.events.length} completed.`);
+      }
+    });
+    document.getElementById("simulation-run-all").addEventListener("click", () => {
+      if (!simulationState.started || simulationState.finished) return;
+      if (simulationState.timer) clearTimeout(simulationState.timer);
+      simulationState.timer = null;
+      simulationState.playing = false;
+      simulationState.paused = false;
+      while (!simulationState.finished && simulationState.index < simulationState.events.length) {
+        advanceSimulationStep();
+      }
+      updateSimulationControls();
+    });
+    document.getElementById("simulation-reset").addEventListener("click", resetSimulationDisplay);
+
+    let sourceLines = [];
+    let sourceHighlights = new Set();
+    async function loadSource() {
+      const result = await request("/api/code/booking.py");
+      sourceLines = result.lines;
+      sourceHighlights = new Set(result.highlights);
+      renderSource(document.querySelector(".code-tab.active").dataset.codeMode);
+    }
+
+    function renderSource(mode) {
+      const output = document.getElementById("code-lines");
+      const limits = {
+        unsafe: ["    def _run_unsafe(", "    def _run_mutex("],
+        mutex: ["    def _run_mutex(", "    def _run_semaphore("],
+        semaphore: ["    def _run_semaphore(", "    @staticmethod"],
+      };
+      let start = sourceLines.findIndex((line) => line.startsWith(limits[mode][0]));
+      let end = sourceLines.findIndex((line, index) => index > start && line.startsWith(limits[mode][1]));
+      if (start < 0) { start = 0; end = sourceLines.length; }
+      if (end < 0) end = sourceLines.length;
+      output.replaceChildren();
+      sourceLines.slice(start, end).forEach((text, offset) => {
+        const lineNumber = start + offset;
+        const line = document.createElement("span");
+        line.className = `code-line${sourceHighlights.has(lineNumber) ? " highlight" : ""}`;
+        const number = document.createElement("span");
+        number.className = "line-no";
+        number.textContent = String(lineNumber + 1);
+        line.append(number, document.createTextNode(text));
+        output.append(line);
+      });
+    }
+    document.querySelectorAll(".code-tab").forEach((tab) => tab.addEventListener("click", () => {
+      document.querySelectorAll(".code-tab").forEach((item) => {
+        const active = item === tab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", String(active));
+      });
+      renderSource(tab.dataset.codeMode);
+    }));
+    document.getElementById("code-refresh").addEventListener("click", () => loadSource().catch((error) => {
+      document.getElementById("code-lines").textContent = error.message;
+    }));
+
+    function navigateToTab(panelId) {
+      if (panelId === "panel-passenger" || panelId === "panel-summary") {
+        const selected = selectedSeatDetails();
+        const passengerName = document.getElementById("passenger-name").value.trim();
+        const isCurrentBooking = panelId === "panel-summary"
+          && selected?.status === "booked"
+          && selected.passengers.includes(passengerName);
+        const requiresAvailableSeat = panelId === "panel-passenger"
+          || (panelId === "panel-summary" && !isCurrentBooking);
+        if (!selected || (requiresAvailableSeat && selected.status !== "available")) {
+          setMessage(document.getElementById("booking-message"), "Choose a train and available berth first.", true);
+          activateTab("panel-booking");
+          return;
+        }
+      }
+      if (panelId === "panel-summary") {
+        const passengerForm = document.getElementById("passenger-form");
+        syncPassengerValidity();
+        if (!passengerForm.checkValidity()) {
+          activateTab("panel-passenger");
+          passengerForm.reportValidity();
+          return;
+        }
+      }
+      renderBookingSummary();
+      activateTab(panelId);
+    }
+
+    function activateTab(panelId) {
+      document.querySelectorAll(".app-tab").forEach((tab) => {
+        const active = tab.dataset.tab === panelId;
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.hidden = panel.id !== panelId;
+      });
+      if (panelId === "panel-solution" && !sourceLines.length) {
+        loadSource().catch((error) => {
+          document.getElementById("code-lines").textContent = error.message;
+        });
+      }
+    }
+
+    const appTabs = Array.from(document.querySelectorAll(".app-tab"));
+    appTabs.forEach((tab) => {
+      tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
+      tab.addEventListener("click", () => navigateToTab(tab.dataset.tab));
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const step = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (appTabs.indexOf(tab) + step + appTabs.length) % appTabs.length;
+        navigateToTab(appTabs[nextIndex].dataset.tab);
+        document.querySelector('.app-tab[aria-selected="true"]')?.focus();
+      });
+    });
+    document.querySelectorAll("[data-tab-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        navigateToTab(button.dataset.tabTarget);
+      });
     });
 
-    document.getElementById("btnClearLog").addEventListener("click", () => { terminal.textContent = ""; });
+    function appendLiveEvent(item) {
+      const output = document.getElementById("live-log");
+      if (output.firstElementChild?.textContent.includes("Waiting for backend events")) {
+        output.replaceChildren();
+      }
+      const line = document.createElement("span");
+      line.className = `terminal-line ${item.kind || "info"}`;
+      line.textContent = `[${item.time}] [${item.process}] ${item.message}`;
+      output.append(line);
+      while (output.childElementCount > 300) output.firstElementChild.remove();
+      output.scrollTop = output.scrollHeight;
+    }
 
-    // ---- bootstrap ----
-    loadTrains();
-    refreshDemoSeats();
-    setInterval(pollLog, 300);
-    setInterval(refreshDemoSeats, 1500);
+    async function pollBackendEvents() {
+      if (eventPollInFlight || document.getElementById("dashboard").hidden) return;
+      eventPollInFlight = true;
+      try {
+        const result = await request(`/api/log?since=${lastEventId}`);
+        lastPollError = "";
+        result.events.forEach((item) => {
+          appendLiveEvent(item);
+          lastEventId = Math.max(lastEventId, item.id);
+        });
+      } catch (error) {
+        if (lastPollError !== error.message) {
+          appendLiveEvent({
+            time: new Date().toLocaleTimeString(),
+            process: "System",
+            message: `Live log unavailable: ${error.message}`,
+            kind: "error",
+          });
+          lastPollError = error.message;
+        }
+      } finally {
+        eventPollInFlight = false;
+      }
+    }
+
+    async function enterDashboard(username) {
+      document.getElementById("login-screen").hidden = true;
+      document.getElementById("app-header").hidden = false;
+      document.getElementById("dashboard").hidden = false;
+      document.getElementById("nav-user").textContent = `Signed in: ${username}`;
+      document.getElementById("profile-name").textContent = username;
+      document.getElementById("profile-initials").textContent = username
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join("");
+      location.hash = "dashboard";
+      if (!dashboardInitialized) {
+        dashboardInitialized = true;
+        Promise.allSettled([refreshTrains(), loadSource()]).then((results) => {
+          results.forEach((result) => {
+            if (result.status === "rejected") {
+              const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+              appendLiveEvent({
+                time: new Date().toLocaleTimeString(),
+                process: "System",
+                message: `Dashboard data failed to load: ${message}`,
+                kind: "error",
+              });
+            }
+          });
+        });
+      } else {
+        refreshTrains().catch((error) => appendLiveEvent({
+          time: new Date().toLocaleTimeString(),
+          process: "System",
+          message: `Train refresh failed: ${error.message}`,
+          kind: "error",
+        }));
+      }
+      await pollBackendEvents();
+      if (!eventPollTimer) eventPollTimer = setInterval(pollBackendEvents, 250);
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = event.currentTarget.querySelector('button[type="submit"]');
+      const errorBox = document.getElementById("login-error");
+      submit.disabled = true;
+      errorBox.textContent = "";
+      try {
+        const result = await request("/api/login", {
+          method: "POST",
+          body: JSON.stringify({
+            username: document.getElementById("login-username").value,
+            password: document.getElementById("login-password").value,
+          }),
+        });
+        sessionStorage.setItem("railway-demo-user", result.username);
+        document.getElementById("login-password").value = "";
+        await enterDashboard(result.username);
+      } catch (error) {
+        errorBox.textContent = error.message;
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    document.getElementById("logout").addEventListener("click", () => {
+      sessionStorage.removeItem("railway-demo-user");
+      if (eventPollTimer) clearInterval(eventPollTimer);
+      eventPollTimer = null;
+      activateTab("panel-booking");
+      document.getElementById("booking-message").textContent = "";
+      document.getElementById("dashboard").hidden = true;
+      document.getElementById("app-header").hidden = true;
+      document.getElementById("login-screen").hidden = false;
+      location.hash = "login-screen";
+    });
+    document.getElementById("profile-logout").addEventListener("click", () => {
+      document.getElementById("logout").click();
+    });
+
+    document.getElementById("clear-live-log").addEventListener("click", () => {
+      document.getElementById("live-log").replaceChildren();
+    });
+
+    const savedUser = sessionStorage.getItem("railway-demo-user");
+    if (savedUser) enterDashboard(savedUser);
   </script>
 </body>
 </html>

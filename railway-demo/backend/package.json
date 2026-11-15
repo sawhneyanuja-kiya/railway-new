@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "start": "tsx src/main.ts",
-    "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
